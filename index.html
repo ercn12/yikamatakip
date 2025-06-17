@@ -715,40 +715,42 @@
         let currentUser = null;
         let currentUserType = null;
         let onlineUsers = 1;
-        
-        // Demo çalışan bilgileri - dinamik veritabanı
-        let employeeDatabase = {
-            'admin': { 
-                password: 'Meg500.', 
-                type: 'yonetici', 
-                name: 'Sistem Yöneticisi', 
-                code: '0000', 
-                startDate: '2024-01-01', 
-                phone: '0532 000 00 00', 
-                notes: 'Sistem varsayılan yönetici', 
-                status: 'aktif' 
-            },
-            'calisan1': { 
-                password: '123456', 
-                type: 'calisan', 
-                name: 'Ahmet Çalışan', 
-                code: '1001', 
-                startDate: '2024-06-01', 
-                phone: '0555 111 22 33', 
-                notes: 'Deneyimli çalışan', 
-                status: 'aktif' 
-            },
-            'calisan2': { 
-                password: '123456', 
-                type: 'calisan', 
-                name: 'Mehmet Çalışan', 
-                code: '1002', 
-                startDate: '2024-08-15', 
-                phone: '0544 222 33 44', 
-                notes: 'Yeni başlayan', 
-                status: 'aktif' 
-            }
-        };
+        let employeeDatabase = {}; // Firebase'den yüklenecek
+        function loadDefaultEmployees() {
+            console.log('📋 Varsayılan çalışan verileri yükleniyor...');
+            employeeDatabase = {
+                'admin': { 
+                    password: '123456', 
+                    type: 'yonetici', 
+                    name: 'Sistem Yöneticisi', 
+                    code: '0000', 
+                    startDate: '2024-01-01', 
+                    phone: '0532 000 00 00', 
+                    notes: 'Sistem varsayılan yönetici', 
+                    status: 'aktif' 
+                },
+                'calisan1': { 
+                    password: '123456', 
+                    type: 'calisan', 
+                    name: 'Ahmet Çalışan', 
+                    code: '1001', 
+                    startDate: '2024-06-01', 
+                    phone: '0555 111 22 33', 
+                    notes: 'Deneyimli çalışan', 
+                    status: 'aktif' 
+                },
+                'calisan2': { 
+                    password: '123456', 
+                    type: 'calisan', 
+                    name: 'Mehmet Çalışan', 
+                    code: '1002', 
+                    startDate: '2024-08-15', 
+                    phone: '0544 222 33 44', 
+                    notes: 'Yeni başlayan', 
+                    status: 'aktif' 
+                }
+            };
+        }
         
         // Ekran yönetimi fonksiyonları
         function showLoginScreen() {
@@ -846,27 +848,51 @@
         function employeeLogin(event) {
             event.preventDefault();
             
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
             const employeeType = document.getElementById('employeeType').value;
+            
+            console.log('🔐 Giriş denemesi:', username, 'Tip:', employeeType);
+            console.log('👥 Mevcut çalışanlar:', Object.keys(employeeDatabase));
             
             const employee = employeeDatabase[username];
             
-            if (employee && employee.password === password && employee.type === employeeType && employee.status === 'aktif') {
-                currentUser = employee.name;
-                currentUserType = employee.type;
-                
-                // Form'u temizle
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-                document.getElementById('employeeType').value = '';
-                
-                showManagementScreen();
-            } else if (employee && employee.status === 'pasif') {
-                alert('Bu çalışan hesabı pasif durumda! Yönetici ile iletişime geçin.');
-            } else {
-                alert('Hatalı giriş bilgileri!');
+            if (!employee) {
+                console.log('❌ Kullanıcı bulunamadı:', username);
+                alert('Kullanıcı adı bulunamadı!');
+                return;
             }
+            
+            if (employee.status === 'pasif') {
+                console.log('⏸ Pasif hesap:', username);
+                alert('Bu çalışan hesabı pasif durumda! Yönetici ile iletişime geçin.');
+                return;
+            }
+            
+            if (employee.password !== password) {
+                console.log('❌ Yanlış şifre:', username);
+                alert('Yanlış şifre!');
+                return;
+            }
+            
+            if (employee.type !== employeeType) {
+                console.log('❌ Yanlış tip:', username, 'Beklenen:', employee.type, 'Girilen:', employeeType);
+                alert('Çalışan türü yanlış seçildi!');
+                return;
+            }
+            
+            // Başarılı giriş
+            currentUser = employee.name;
+            currentUserType = employee.type;
+            
+            console.log('✅ Başarılı giriş:', currentUser, 'Tip:', currentUserType);
+            
+            // Form'u temizle
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('employeeType').value = '';
+            
+            showManagementScreen();
         }
         
         function logout() {
@@ -1091,10 +1117,10 @@
             // Tabloyu güncelle
             renderEmployeeTable();
             
-            // Firebase'e kaydet
+            // Firebase'e kaydet ve canlı güncellemeyi başlat
             saveEmployeesToFirebase();
             
-            alert(`Çalışan başarıyla kaydedildi!\n\nKullanıcı Adı: ${username}\nŞifre: ${password}\n\nBu bilgileri çalışana iletin.`);
+            alert(`✅ Çalışan başarıyla kaydedildi!\n\n🔑 Giriş Bilgileri:\nKullanıcı Adı: ${username}\nŞifre: ${password}\nTip: ${position}\n\n📝 Bu bilgileri çalışana iletin.`);
         }
         
         function renderEmployeeTable() {
@@ -1310,8 +1336,27 @@
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
                 console.log('✅ Çalışan verileri Firebase\'e başarıyla kaydedildi');
+                // Kaydetme sonrası güncel verileri tekrar yükle
+                loadEmployeesFromFirebase();
             }).catch((error) => {
                 console.error('❌ Çalışan kaydetme hatası:', error);
+            });
+        }
+        
+        // Çalışan verilerini Firebase'den canlı olarak yükle
+        function loadEmployeesFromFirebase() {
+            if (!db) return;
+            
+            db.collection('employees').doc('all').onSnapshot((doc) => {
+                if (doc.exists && doc.data().employees) {
+                    console.log('🔄 Çalışan verileri güncellendi');
+                    employeeDatabase = doc.data().employees;
+                    
+                    // Çalışan tablosunu güncelle (eğer açıksa)
+                    if (document.getElementById('employeeManagementScreen').classList.contains('active')) {
+                        renderEmployeeTable();
+                    }
+                }
             });
         }
         
@@ -1319,10 +1364,30 @@
             if (!db) {
                 console.error('❌ Firestore hazır değil, demo veriler yükleniyor');
                 loadDemoData();
+                loadDefaultEmployees();
                 return;
             }
             
             console.log('📥 Firebase bağlantısı başlatılıyor...');
+            
+            // Çalışanları önce yükle (giriş sistemi için gerekli)
+            db.collection('employees').doc('all').get()
+                .then((doc) => {
+                    console.log('👥 Çalışan verileri sorgusu tamamlandı');
+                    if (doc.exists) {
+                        console.log('✅ Çalışan verileri Firebase\'den yüklendi:', doc.data());
+                        employeeDatabase = doc.data().employees || employeeDatabase;
+                    } else {
+                        console.log('⚠️ Çalışan verileri bulunamadı, varsayılan veriler kullanılıyor');
+                        loadDefaultEmployees();
+                        // İlk kez varsayılan çalışanları Firebase'e kaydet
+                        saveEmployeesToFirebase();
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Çalışan verileri yüklenirken hata:', error);
+                    loadDefaultEmployees();
+                });
             
             // Araçları yükle
             db.collection('vehicles').doc('current').get()
@@ -1344,21 +1409,6 @@
                     console.error('❌ Araç verileri yüklenirken hata:', error);
                     console.log('🔄 Demo veriler yükleniyor');
                     loadDemoData();
-                });
-            
-            // Çalışanları yükle
-            db.collection('employees').doc('all').get()
-                .then((doc) => {
-                    console.log('👥 Çalışan verileri sorgusu tamamlandı');
-                    if (doc.exists) {
-                        console.log('✅ Çalışan verileri bulundu:', doc.data());
-                        employeeDatabase = doc.data().employees || employeeDatabase;
-                    } else {
-                        console.log('⚠️ Çalışan verileri bulunamadı, varsayılan veriler kullanılıyor');
-                    }
-                })
-                .catch((error) => {
-                    console.error('❌ Çalışan verileri yüklenirken hata:', error);
                 });
         }
         
@@ -1449,9 +1499,12 @@
                 if (firebaseReady && db) {
                     console.log('🔥 Firebase hazır - Gerçek veriler yükleniyor');
                     loadFromFirebase();
+                    // Çalışan verilerini canlı takip et
+                    loadEmployeesFromFirebase();
                 } else {
                     console.log('⚠️ Firebase hazır değil - Demo veriler yükleniyor');
                     loadDemoData();
+                    loadDefaultEmployees();
                 }
             }, 3000); // Firebase CDN'nin tamamen yüklenmesi için 3 saniye bekle
             
