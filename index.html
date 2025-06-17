@@ -1,12 +1,13 @@
-
 </html><!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autoclub Marintürk - Yıkama Takip</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
+    <!-- Firebase v8 Compat CDN - Doğru versiyonlar -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
         * {
             margin: 0;
@@ -649,6 +650,7 @@
                         <thead>
                             <tr style="background: #f8f9fa;">
                                 <th style="padding: 10px; border: 1px solid #ddd;">Saat</th>
+                                
                                 <th style="padding: 10px; border: 1px solid #ddd;">Plaka</th>
                                 <th style="padding: 10px; border: 1px solid #ddd;">Müşteri</th>
                                 <th style="padding: 10px; border: 1px solid #ddd;">Yıkama Türü</th>
@@ -669,7 +671,7 @@
     </div>
 
     <script>
-        // Firebase Configuration - Kendi Firebase config'inizi buraya ekleyin
+        // Firebase Configuration - Gerçek Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDUC7ppDuLIcFIsQZrXJhEZFy62BIlUtps",
             authDomain: "yikamatakip-a05e1.firebaseapp.com",
@@ -679,7 +681,34 @@
             messagingSenderId: "768744254557",
             appId: "1:768744254557:web:ba5a4ba4f7b0c9e7e971b4",
             measurementId: "G-NDBFQFBBJ1"
-    };
+        };
+        
+        // Firebase'i başlat
+        let db;
+        
+        // Firebase yüklenmesini kontrol et
+        function initFirebase() {
+            if (typeof firebase === 'undefined') {
+                console.error('❌ Firebase CDN yüklenmedi!');
+                return false;
+            }
+            
+            if (typeof firebase.firestore === 'undefined') {
+                console.error('❌ Firestore modülü yüklenmedi!');
+                return false;
+            }
+            
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                console.log('✅ Firebase başarıyla başlatıldı');
+                console.log('📊 Proje ID:', firebaseConfig.projectId);
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase başlatma hatası:', error);
+                return false;
+            }
+        }
         
         // Global değişkenler
         let vehicles = [];
@@ -720,7 +749,7 @@
                 status: 'aktif' 
             }
         };
-
+        
         // Ekran yönetimi fonksiyonları
         function showLoginScreen() {
             hideAllScreens();
@@ -845,15 +874,603 @@
             currentUserType = null;
             showLoginScreen();
         }
-
-        // Diğer tüm fonksiyonlar buraya gelir...
-        // (Müşteri sorgu, araç yönetimi, çalışan yönetimi, rapor fonksiyonları)
+        
+        // Müşteri sorgu fonksiyonları
+        function searchPlaka() {
+            const plaka = document.getElementById('plakaSearchInput').value.trim().toUpperCase();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (!plaka) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+            
+            const vehicle = vehicles.find(v => v.plaka === plaka);
+            
+            if (vehicle) {
+                const statusText = {
+                    'sirada': '⏳ Sırada bekliyor',
+                    'iceride': '🚿 Yıkama alanında',
+                    'yapiliyor': '⚙️ Yıkama devam ediyor',
+                    'bitti': '✅ Yıkama tamamlandı'
+                };
+                
+                const duration = calculateDuration(vehicle.startTime);
+                
+                resultsDiv.innerHTML = `
+                    <div class="search-result">
+                        <h3 style="color: #2196F3; margin-bottom: 15px;">📋 Araç Bilgileri</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div><strong>Plaka:</strong> ${vehicle.plaka}</div>
+                            <div><strong>Müşteri:</strong> ${vehicle.customerName}</div>
+                            <div><strong>Araç Tipi:</strong> ${vehicle.vehicleType}</div>
+                            <div><strong>Yıkama Tipi:</strong> ${vehicle.washType}</div>
+                        </div>
+                        <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.2em; font-weight: bold; color: #1976d2; margin-bottom: 5px;">
+                                ${statusText[vehicle.status]}
+                            </div>
+                            <div style="color: #666;">
+                                Geçen süre: ${duration}
+                            </div>
+                        </div>
+                        ${vehicle.specialNotes ? `<div style="margin-top: 15px;"><strong>Notlar:</strong> ${vehicle.specialNotes}</div>` : ''}
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="search-result" style="text-align: center; color: #666;">
+                        <h3>❌ Plaka bulunamadı</h3>
+                        <p>Bu plaka numarası sistemde kayıtlı değil.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Araç yönetimi fonksiyonları
+        function addVehicleFromPanel(event) {
+            event.preventDefault();
+            
+            const vehicleData = {
+                id: Date.now(),
+                plaka: document.getElementById('quickVehiclePlaka').value.trim().toUpperCase(),
+                vehicleType: document.getElementById('quickVehicleType').value,
+                customerName: document.getElementById('quickCustomerName').value.trim(),
+                customerPhone: document.getElementById('quickCustomerPhone').value.trim(),
+                washType: document.getElementById('quickWashType').value,
+                specialNotes: '',
+                status: 'sirada',
+                startTime: new Date(),
+                addedBy: currentUser,
+                addedDate: new Date().toDateString()
+            };
+            
+            // Plaka kontrolü
+            if (vehicles.find(v => v.plaka === vehicleData.plaka)) {
+                alert('Bu plaka zaten sistemde kayıtlı!');
+                return;
+            }
+            
+            vehicles.push(vehicleData);
+            
+            // Form'u temizle
+            event.target.reset();
+            
+            saveToFirebase();
+            renderVehicleTable();
+            updateCounts();
+            
+            alert('Araç başarıyla sıraya eklendi!');
+        }
+        
+        function changeVehicleStatus(id, newStatus) {
+            const vehicle = vehicles.find(v => v.id === id);
+            if (vehicle) {
+                vehicle.status = newStatus;
+                if (newStatus === 'iceride' || newStatus === 'yapiliyor') {
+                    vehicle.startTime = new Date();
+                }
+                
+                saveToFirebase();
+                renderVehicleTable();
+                updateCounts();
+            }
+        }
+        
+        function deleteVehicle(id) {
+            if (confirm('Bu aracı sistemden silmek istediğinizden emin misiniz?')) {
+                vehicles = vehicles.filter(v => v.id !== id);
+                saveToFirebase();
+                renderVehicleTable();
+                updateCounts();
+            }
+        }
+        
+        function renderVehicleTable() {
+            const tbody = document.getElementById('plakaTableBody');
+            tbody.innerHTML = '';
+            
+            // Duruma göre sıralama
+            const sortedVehicles = [...vehicles].sort((a, b) => {
+                const statusOrder = { 'sirada': 1, 'iceride': 2, 'yapiliyor': 3, 'bitti': 4 };
+                return statusOrder[a.status] - statusOrder[b.status];
+            });
+            
+            sortedVehicles.forEach(vehicle => {
+                const row = document.createElement('tr');
+                const duration = calculateDuration(vehicle.startTime);
+                
+                row.innerHTML = `
+                    <td style="font-weight: bold;">${vehicle.plaka}</td>
+                    <td>${vehicle.customerName}</td>
+                    <td>${vehicle.vehicleType}</td>
+                    <td>${vehicle.washType}</td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'sirada' ? 'status-sirada' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'sirada')">
+                            ${vehicle.status === 'sirada' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'iceride' ? 'status-iceride' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'iceride')">
+                            ${vehicle.status === 'iceride' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'yapiliyor' ? 'status-yapiliyor' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'yapiliyor')">
+                            ${vehicle.status === 'yapiliyor' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'bitti' ? 'status-bitti' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'bitti')">
+                            ${vehicle.status === 'bitti' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td style="font-size: 0.9em; color: #666;">${duration}</td>
+                    <td>
+                        ${currentUserType === 'yonetici' ? 
+                            `<button style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" 
+                                    onclick="deleteVehicle(${vehicle.id})">Sil</button>` : 
+                            '<span style="color: #999;">-</span>'
+                        }
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Çalışan yönetimi fonksiyonları
+        function addEmployee(event) {
+            event.preventDefault();
+            
+            const employeeCode = document.getElementById('employeeCode').value.trim();
+            const employeeName = document.getElementById('employeeName').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const phone = document.getElementById('employeePhone').value.trim();
+            const position = document.getElementById('employeePosition').value;
+            const password = document.getElementById('employeePassword').value;
+            const notes = document.getElementById('employeeNotes').value.trim();
+            
+            // Kod kontrolü - benzersiz olmalı
+            if (Object.values(employeeDatabase).find(emp => emp.code === employeeCode)) {
+                alert('Bu çalışan kodu zaten kullanılıyor! Farklı bir kod girin.');
+                return;
+            }
+            
+            // Kullanıcı adı oluştur (adın ilk harfi + soyadı + kod)
+            const nameParts = employeeName.split(' ');
+            const username = (nameParts[0].charAt(0) + (nameParts[1] || 'user') + employeeCode).toLowerCase().replace(/[^a-z0-9]/g, '');
+            
+            if (employeeDatabase[username]) {
+                alert('Bu kullanıcı adı zaten var! Çalışan kaydı yapılamadı.');
+                return;
+            }
+            
+            // Yeni çalışan oluştur
+            employeeDatabase[username] = {
+                password: password,
+                type: position,
+                name: employeeName,
+                code: employeeCode,
+                startDate: startDate,
+                phone: phone,
+                notes: notes,
+                status: 'aktif',
+                addedBy: currentUser,
+                addedDate: new Date().toISOString().split('T')[0]
+            };
+            
+            // Form temizle
+            event.target.reset();
+            document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            
+            // Tabloyu güncelle
+            renderEmployeeTable();
+            
+            // Firebase'e kaydet
+            saveEmployeesToFirebase();
+            
+            alert(`Çalışan başarıyla kaydedildi!\n\nKullanıcı Adı: ${username}\nŞifre: ${password}\n\nBu bilgileri çalışana iletin.`);
+        }
+        
+        function renderEmployeeTable() {
+            const tbody = document.getElementById('employeeTableBody');
+            tbody.innerHTML = '';
+            
+            Object.entries(employeeDatabase).forEach(([username, employee]) => {
+                // Sistem yöneticisi hariç diğer çalışanları göster
+                if (username === 'admin') return;
+                
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #eee';
+                
+                const positionText = {
+                    'calisan': '👨‍🔧 Çalışan',
+                    'yonetici': '👨‍💼 Yönetici',
+                    'vardiya-sorumlusu': '👨‍💻 Vardiya Sorumlusu'
+                };
+                
+                const startDateFormatted = new Date(employee.startDate).toLocaleDateString('tr-TR');
+                const workDays = Math.floor((new Date() - new Date(employee.startDate)) / (1000 * 60 * 60 * 24));
+                
+                row.innerHTML = `
+                    <td style="padding: 12px; font-weight: bold; color: #9c27b0;">#${employee.code}</td>
+                    <td style="padding: 12px;">
+                        <div style="font-weight: bold;">${employee.name}</div>
+                        <div style="font-size: 0.8em; color: #666;">@${username}</div>
+                    </td>
+                    <td style="padding: 12px;">${positionText[employee.type]}</td>
+                    <td style="padding: 12px;">
+                        <div>${startDateFormatted}</div>
+                        <div style="font-size: 0.8em; color: #666;">${workDays} gün</div>
+                    </td>
+                    <td style="padding: 12px;">${employee.phone || '-'}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="background: ${employee.status === 'aktif' ? '#4caf50' : '#ff9800'}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8em;">
+                            ${employee.status === 'aktif' ? '✓' : '⏸'} ${employee.status}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button onclick="toggleEmployeeStatus('${username}')" 
+                                style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; margin-right: 5px; cursor: pointer; font-size: 12px;">
+                            ${employee.status === 'aktif' ? 'Pasif Yap' : 'Aktif Yap'}
+                        </button>
+                        <button onclick="resetEmployeePassword('${username}')" 
+                                style="background: #2196f3; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            Şifre Sıfırla
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function toggleEmployeeStatus(username) {
+            const employee = employeeDatabase[username];
+            if (employee) {
+                employee.status = employee.status === 'aktif' ? 'pasif' : 'aktif';
+                saveEmployeesToFirebase();
+                renderEmployeeTable();
+                
+                alert(`${employee.name} durumu ${employee.status} olarak değiştirildi.`);
+            }
+        }
+        
+        function resetEmployeePassword(username) {
+            const newPassword = prompt('Yeni şifre girin (minimum 6 karakter):');
+            if (newPassword && newPassword.length >= 6) {
+                employeeDatabase[username].password = newPassword;
+                saveEmployeesToFirebase();
+                
+                alert(`${employeeDatabase[username].name} için yeni şifre: ${newPassword}\n\nBu şifreyi çalışana iletin.`);
+            } else if (newPassword !== null) {
+                alert('Şifre en az 6 karakter olmalıdır!');
+            }
+        }
+        
+        // Rapor fonksiyonları
+        function generateDailyReport() {
+            const today = new Date().toDateString();
+            const todayVehicles = vehicles.filter(v => v.addedDate === today);
+            
+            // Tarih göster
+            document.getElementById('reportDate').textContent = new Date().toLocaleDateString('tr-TR');
+            
+            // Temel istatistikler
+            const totalVehicles = todayVehicles.length;
+            const completedVehicles = todayVehicles.filter(v => v.status === 'bitti').length;
+            const inProgressVehicles = todayVehicles.filter(v => v.status !== 'bitti').length;
+            
+            // Tahmini gelir (yıkama türüne göre fiyatlar)
+            const washPrices = {
+                'dis-yikama': 50,
+                'ic-dis-yikama': 80,
+                'detay-yikama': 150,
+                'motor-yikama': 100
+            };
+            
+            const totalRevenue = todayVehicles.reduce((sum, v) => {
+                return sum + (washPrices[v.washType] || 50);
+            }, 0);
+            
+            document.getElementById('reportTotalVehicles').textContent = totalVehicles;
+            document.getElementById('reportCompletedVehicles').textContent = completedVehicles;
+            document.getElementById('reportInProgressVehicles').textContent = inProgressVehicles;
+            document.getElementById('reportTotalRevenue').textContent = totalRevenue;
+            
+            // Detaylı tablo
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            
+            todayVehicles.forEach(vehicle => {
+                const row = document.createElement('tr');
+                const addTime = new Date(vehicle.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                const duration = calculateDuration(vehicle.startTime);
+                
+                const statusText = {
+                    'sirada': '⏳ Sırada',
+                    'iceride': '🚿 İçeride',
+                    'yapiliyor': '⚙️ Yapılıyor',
+                    'bitti': '✅ Bitti'
+                };
+                
+                const washTypeNames = {
+                    'dis-yikama': 'Dış Yıkama',
+                    'ic-dis-yikama': 'İç Dış Yıkama',
+                    'detay-yikama': 'Detaylı Yıkama',
+                    'motor-yikama': 'Motor Yıkama'
+                };
+                
+                row.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #ddd;">${addTime}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">${vehicle.plaka}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${vehicle.customerName}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${washTypeNames[vehicle.washType]}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${statusText[vehicle.status]}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${duration}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Yardımcı fonksiyonlar
+        function updateCounts() {
+            const counts = {
+                sirada: vehicles.filter(v => v.status === 'sirada').length,
+                iceride: vehicles.filter(v => v.status === 'iceride').length,
+                yapiliyor: vehicles.filter(v => v.status === 'yapiliyor').length,
+                bitti: vehicles.filter(v => v.status === 'bitti').length
+            };
+            
+            // Günlük toplam
+            const today = new Date().toDateString();
+            const todayCount = vehicles.filter(v => v.addedDate === today).length;
+            
+            document.getElementById('siradaCount').textContent = counts.sirada;
+            document.getElementById('icerideCount').textContent = counts.iceride;
+            document.getElementById('yapiliyorCount').textContent = counts.yapiliyor;
+            document.getElementById('bittiCount').textContent = counts.bitti;
+            
+            if (document.getElementById('todayCount')) {
+                document.getElementById('todayCount').textContent = todayCount;
+            }
+        }
+        
+        function calculateDuration(startTime) {
+            const now = new Date();
+            const diff = now - startTime;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            
+            if (hours > 0) {
+                return `${hours}s ${minutes}dk`;
+            } else if (minutes > 0) {
+                return `${minutes}dk ${seconds}sn`;
+            } else {
+                return `${seconds}sn`;
+            }
+        }
+        
+        // Firebase simülasyonu ve veri kaydetme
+        function saveToFirebase() {
+            if (!db) {
+                console.error('❌ Firestore hazır değil!');
+                return;
+            }
+            
+            console.log('📤 Firebase\'e kaydetme başlatılıyor...');
+            
+            db.collection('vehicles').doc('current').set({
+                vehicles: vehicles,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                console.log('✅ Araç verileri Firebase\'e başarıyla kaydedildi');
+                broadcastUpdate();
+            }).catch((error) => {
+                console.error('❌ Firebase kaydetme hatası:', error);
+            });
+        }
+        
+        function saveEmployeesToFirebase() {
+            if (!db) {
+                console.error('❌ Firestore hazır değil!');
+                return;
+            }
+            
+            console.log('📤 Çalışan verileri Firebase\'e kaydediliyor...');
+            
+            db.collection('employees').doc('all').set({
+                employees: employeeDatabase,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                console.log('✅ Çalışan verileri Firebase\'e başarıyla kaydedildi');
+            }).catch((error) => {
+                console.error('❌ Çalışan kaydetme hatası:', error);
+            });
+        }
+        
+        function loadFromFirebase() {
+            if (!db) {
+                console.error('❌ Firestore hazır değil, demo veriler yükleniyor');
+                loadDemoData();
+                return;
+            }
+            
+            console.log('📥 Firebase bağlantısı başlatılıyor...');
+            
+            // Araçları yükle
+            db.collection('vehicles').doc('current').get()
+                .then((doc) => {
+                    console.log('📋 Araç verileri sorgusu tamamlandı');
+                    if (doc.exists) {
+                        console.log('✅ Araç verileri bulundu:', doc.data());
+                        vehicles = doc.data().vehicles || [];
+                        if (currentUser) {
+                            renderVehicleTable();
+                            updateCounts();
+                        }
+                    } else {
+                        console.log('⚠️ Araç verileri bulunamadı, demo veriler yükleniyor');
+                        loadDemoData();
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Araç verileri yüklenirken hata:', error);
+                    console.log('🔄 Demo veriler yükleniyor');
+                    loadDemoData();
+                });
+            
+            // Çalışanları yükle
+            db.collection('employees').doc('all').get()
+                .then((doc) => {
+                    console.log('👥 Çalışan verileri sorgusu tamamlandı');
+                    if (doc.exists) {
+                        console.log('✅ Çalışan verileri bulundu:', doc.data());
+                        employeeDatabase = doc.data().employees || employeeDatabase;
+                    } else {
+                        console.log('⚠️ Çalışan verileri bulunamadı, varsayılan veriler kullanılıyor');
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Çalışan verileri yüklenirken hata:', error);
+                });
+        }
+        
+        function broadcastUpdate() {
+            // Gerçek projede socket.io veya Firebase realtime ile
+            console.log('Güncelleme broadcast edildi');
+        }
+        
+        // Demo veriler
+        function loadDemoData() {
+            const today = new Date().toDateString();
+            vehicles = [
+                {
+                    id: 1, 
+                    plaka: '34ABC123', 
+                    vehicleType: 'otomobil', 
+                    customerName: 'Ahmet Yılmaz', 
+                    customerPhone: '0555 123 45 67',
+                    washType: 'ic-dis-yikama', 
+                    specialNotes: 'Dikkatli yıkanacak',
+                    status: 'sirada', 
+                    startTime: new Date(Date.now() - 600000),
+                    addedBy: 'Demo', 
+                    addedDate: today
+                },
+                {
+                    id: 2, 
+                    plaka: '06DEF456', 
+                    vehicleType: 'suv',
+                    customerName: 'Mehmet Kaya', 
+                    customerPhone: '0532 987 65 43',
+                    washType: 'detay-yikama', 
+                    specialNotes: '',
+                    status: 'iceride', 
+                    startTime: new Date(Date.now() - 300000),
+                    addedBy: 'Demo', 
+                    addedDate: today
+                },
+                {
+                    id: 3, 
+                    plaka: '35GHI789', 
+                    vehicleType: 'otomobil',
+                    customerName: 'Ayşe Demir', 
+                    customerPhone: '0544 111 22 33', 
+                    washType: 'dis-yikama', 
+                    specialNotes: '',
+                    status: 'bitti', 
+                    startTime: new Date(Date.now() - 1800000),
+                    addedBy: 'Demo', 
+                    addedDate: today
+                },
+                {
+                    id: 4, 
+                    plaka: '16XYZ999', 
+                    vehicleType: 'pickup',
+                    customerName: 'Can Özkan', 
+                    customerPhone: '0533 444 55 66',
+                    washType: 'motor-yikama', 
+                    specialNotes: 'Motor temizliği önemli',
+                    status: 'yapiliyor', 
+                    startTime: new Date(Date.now() - 900000),
+                    addedBy: 'Demo', 
+                    addedDate: today
+                }
+            ];
+        }
+        
+        // Otomatik güncellemeler
+        setInterval(() => {
+            if (currentUser && document.getElementById('managementScreen').classList.contains('active')) {
+                renderVehicleTable();
+            }
+        }, 1000);
+        
+        setInterval(() => {
+            onlineUsers = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('userCount').textContent = onlineUsers;
+        }, 5000);
         
         // Sayfa yüklendiğinde
         document.addEventListener('DOMContentLoaded', function() {
-            loadDemoData();
-            loadFromFirebase();
+            console.log('🚀 Sayfa yüklendi, Firebase kontrol ediliyor...');
+            
+            // Firebase CDN yüklenmesini bekle
+            setTimeout(() => {
+                const firebaseReady = initFirebase();
+                
+                if (firebaseReady && db) {
+                    console.log('🔥 Firebase hazır - Gerçek veriler yükleniyor');
+                    loadFromFirebase();
+                } else {
+                    console.log('⚠️ Firebase hazır değil - Demo veriler yükleniyor');
+                    loadDemoData();
+                }
+            }, 3000); // Firebase CDN'nin tamamen yüklenmesi için 3 saniye bekle
+            
+            // Event listener'ları güvenli şekilde ekle
+            setTimeout(() => {
+                const plakaSearchInput = document.getElementById('plakaSearchInput');
+                if (plakaSearchInput) {
+                    plakaSearchInput.addEventListener('input', function() {
+                        this.value = this.value.toUpperCase();
+                    });
+                }
+                
+                const employeeCodeInput = document.getElementById('employeeCode');
+                if (employeeCodeInput) {
+                    employeeCodeInput.addEventListener('input', function() {
+                        this.value = this.value.replace(/[^0-9]/g, '');
+                    });
+                }
+            }, 100);
         });
     </script>
 </body>
-</html>
