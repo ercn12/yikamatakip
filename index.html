@@ -1,0 +1,1225 @@
+
+        }<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoclub Marintürk - Yıkama Takip</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            min-height: 80vh;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        .screen {
+            display: none;
+            padding: 30px;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        /* Giriş Ekranı */
+        .login-screen {
+            text-align: center;
+            padding: 50px 30px;
+        }
+        
+        .welcome-text {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 40px;
+        }
+        
+        .login-buttons {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .login-btn {
+            padding: 20px 30px;
+            border: 3px solid;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            min-width: 200px;
+        }
+        
+        .btn-musteri {
+            border-color: #2196F3;
+            color: #1976d2;
+        }
+        
+        .btn-arac {
+            border-color: #9c27b0;
+            color: #7b1fa2;
+        }
+        
+        .btn-calisanlar {
+            border-color: #4caf50;
+            color: #388e3c;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .btn-musteri:hover { background: #e3f2fd; }
+        .btn-arac:hover { background: #f3e5f5; }
+        .btn-calisanlar:hover { background: #e8f5e8; }
+        
+        /* Çalışan Giriş Ekranı */
+        .employee-login {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #f8f9fa;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        /* Müşteri Sorgu Ekranı */
+        .customer-search {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .search-box {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 3px solid #2196F3;
+            border-radius: 10px;
+            font-size: 1.2em;
+            text-transform: uppercase;
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+        }
+        
+        .search-result {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        /* Araç Ekleme Ekranı */
+        .vehicle-form {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        /* Ana Yönetim Ekranı */
+        .control-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .plaka-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+        
+        .plaka-table th {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .plaka-table td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-btn {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .status-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .status-iceride { color: #2196F3; }
+        .status-sirada { color: #ff9800; }
+        .status-yapiliyor { color: #9c27b0; }
+        .status-bitti { color: #4caf50; }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
+        
+        .online-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            .login-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" id="backBtn" onclick="goBack()" style="display: none;">
+        ← Geri
+    </button>
+    
+    <div class="online-indicator">
+        🟢 <span id="userCount">0</span> kullanıcı çevrimiçi
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚗 AUTOCLUB MARİNTÜRK</h1>
+            <p>Araç Yıkama Takip Sistemi</p>
+        </div>
+        
+        <!-- Ana Giriş Ekranı -->
+        <div class="screen active login-screen" id="loginScreen">
+            <div class="welcome-text">
+                Sistem giriş türünü seçiniz
+            </div>
+            <div class="login-buttons">
+                <button class="login-btn btn-musteri" onclick="showCustomerSearch()">
+                    👤 Müşteri<br>Giriş
+                </button>
+                <button class="login-btn btn-arac" onclick="checkEmployeeAccess('vehicle')">
+                    🚗 Araç<br>Giriş
+                </button>
+                <button class="login-btn btn-calisanlar" onclick="showEmployeeLogin()">
+                    👨‍💼 Çalışan<br>Giriş
+                </button>
+            </div>
+        </div>
+        
+        <!-- Çalışan Giriş Ekranı -->
+        <div class="screen employee-login" id="employeeLoginScreen">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">
+                👨‍💼 Çalışan Girişi
+            </h2>
+            <form onsubmit="employeeLogin(event)">
+                <div class="form-group">
+                    <label>Çalışan Türü</label>
+                    <select id="employeeType" required>
+                        <option value="">Seçiniz</option>
+                        <option value="calisan">Çalışan</option>
+                        <option value="yonetici">Yönetici</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="username" required placeholder="Kullanıcı adınızı girin">
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="password" required placeholder="Şifrenizi girin">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    🔐 Giriş Yap
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="showLoginScreen()">
+                    ← Ana Sayfaya Dön
+                </button>
+            </form>
+        </div>
+        
+        <!-- Müşteri Plaka Sorgu Ekranı -->
+        <div class="screen customer-search" id="customerSearchScreen">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">
+                🔍 Plaka Sorgulama
+            </h2>
+            <div class="search-box">
+                <input type="text" class="search-input" id="plakaSearchInput" 
+                       placeholder="PLAKA NUMARANIZI GİRİN" maxlength="10"
+                       onkeyup="searchPlaka()" onkeypress="if(event.key==='Enter') searchPlaka()">
+                <button class="btn btn-primary" onclick="searchPlaka()">
+                    🔍 SORGULA
+                </button>
+            </div>
+            
+            <div id="searchResults"></div>
+            
+            <button class="btn btn-secondary" onclick="showLoginScreen()">
+                ← Ana Sayfaya Dön
+            </button>
+        </div>
+        
+        <!-- Araç Ekleme Ekranı -->
+        <div class="screen vehicle-form" id="vehicleFormScreen">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">
+                🚗 Yeni Araç Kaydı
+            </h2>
+            <form onsubmit="addVehicle(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Plaka Numarası</label>
+                        <input type="text" id="vehiclePlaka" required 
+                               placeholder="örn: 34ABC123" maxlength="10" 
+                               style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label>Araç Türü</label>
+                        <select id="vehicleType" required>
+                            <option value="">Seçiniz</option>
+                            <option value="otomobil">Otomobil</option>
+                            <option value="suv">SUV</option>
+                            <option value="minivan">Minivan</option>
+                            <option value="pickup">Pickup</option>
+                            <option value="motosiklet">Motosiklet</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Müşteri Adı</label>
+                        <input type="text" id="customerName" required placeholder="Müşteri adı soyadı">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefon</label>
+                        <input type="tel" id="customerPhone" placeholder="0555 123 45 67">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Yıkama Türü</label>
+                    <select id="washType" required>
+                        <option value="">Seçiniz</option>
+                        <option value="dis-yikama">Dış Yıkama</option>
+                        <option value="ic-dis-yikama">İç Dış Yıkama</option>
+                        <option value="detay-yikama">Detaylı Yıkama</option>
+                        <option value="motor-yikama">Motor Yıkama</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Özel Notlar</label>
+                    <textarea id="specialNotes" rows="3" placeholder="Özel talepler, hasarlar vb."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    ✅ Aracı Kaydet ve Sıraya Ekle
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="showManagementScreen()">
+                    ← Yönetim Paneline Dön
+                </button>
+            </form>
+        </div>
+        
+        <!-- Ana Yönetim Ekranı -->
+        <div class="screen" id="managementScreen">
+            <div class="user-info">
+                <div>
+                    <strong>Hoşgeldiniz:</strong> <span id="currentUser"></span> 
+                    (<span id="currentUserType"></span>)
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="logout-btn" onclick="showDailyReport()">📊 Günlük Rapor</button>
+                    <button class="logout-btn" onclick="logout()">Çıkış Yap</button>
+                </div>
+            </div>
+            
+            <!-- Yeni Araç Ekleme Formu -->
+            <div class="control-panel">
+                <h3 style="margin-bottom: 20px;">🚗 Yeni Araç Kaydı</h3>
+                <form onsubmit="addVehicleFromPanel(event)" style="background: white; padding: 20px; border-radius: 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label>Plaka Numarası</label>
+                            <input type="text" id="quickVehiclePlaka" required 
+                                   placeholder="34ABC123" maxlength="10" 
+                                   style="text-transform: uppercase; padding: 8px; border: 2px solid #ddd; border-radius: 5px; width: 100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Müşteri Adı</label>
+                            <input type="text" id="quickCustomerName" required 
+                                   placeholder="Müşteri adı" style="padding: 8px; border: 2px solid #ddd; border-radius: 5px; width: 100%;">
+                        </div>
+                        <div class="form-group">
+                            <label>Araç Türü</label>
+                            <select id="quickVehicleType" required style="padding: 8px; border: 2px solid #ddd; border-radius: 5px; width: 100%;">
+                                <option value="">Seçiniz</option>
+                                <option value="otomobil">Otomobil</option>
+                                <option value="suv">SUV</option>
+                                <option value="minivan">Minivan</option>
+                                <option value="pickup">Pickup</option>
+                                <option value="motosiklet">Motosiklet</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Yıkama Türü</label>
+                            <select id="quickWashType" required style="padding: 8px; border: 2px solid #ddd; border-radius: 5px; width: 100%;">
+                                <option value="">Seçiniz</option>
+                                <option value="dis-yikama">Dış Yıkama</option>
+                                <option value="ic-dis-yikama">İç Dış Yıkama</option>
+                                <option value="detay-yikama">Detaylı Yıkama</option>
+                                <option value="motor-yikama">Motor Yıkama</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Telefon</label>
+                            <input type="tel" id="quickCustomerPhone" 
+                                   placeholder="0555 123 45 67" style="padding: 8px; border: 2px solid #ddd; border-radius: 5px; width: 100%;">
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: end;">
+                            <button type="submit" style="background: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%;">
+                                ✅ Aracı Sıraya Ekle
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Durum Özeti -->
+            <div class="control-panel">
+                <h3 style="margin-bottom: 20px;">📊 Anlık Durum</h3>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
+                        <div style="color: #ff9800; font-size: 1.5em;">⏳ Sırada: <span id="siradaCount">0</span></div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
+                        <div style="color: #2196F3; font-size: 1.5em;">🚿 İçeride: <span id="icerideCount">0</span></div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
+                        <div style="color: #9c27b0; font-size: 1.5em;">⚙️ Yapılıyor: <span id="yapiliyorCount">0</span></div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
+                        <div style="color: #4caf50; font-size: 1.5em;">✅ Bitti: <span id="bittiCount">0</span></div>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
+                        <div style="color: #333; font-size: 1.5em;">📅 Bugün: <span id="todayCount">0</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <table class="plaka-table" id="plakaTable">
+                <thead>
+                    <tr>
+                        <th>PLAKA</th>
+                        <th>MÜŞTERİ</th>
+                        <th>ARAÇ TİPİ</th>
+                        <th>YIKAMA TİPİ</th>
+                        <th>SIRADA</th>
+                        <th>İÇERİDE</th>
+                        <th>YAPILIYOR</th>
+                        <th>BİTTİ</th>
+                        <th>SÜRE</th>
+                        <th>İŞLEM</th>
+                    </tr>
+                </thead>
+                <tbody id="plakaTableBody">
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Günlük Rapor Ekranı -->
+        <div class="screen" id="dailyReportScreen">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">
+                📊 Günlük Rapor - <span id="reportDate"></span>
+            </h2>
+            
+            <div class="control-panel">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <div style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 2em; font-weight: bold;" id="reportTotalVehicles">0</div>
+                        <div>Toplam Araç</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #2196f3, #1976d2); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 2em; font-weight: bold;" id="reportCompletedVehicles">0</div>
+                        <div>Tamamlanan</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 2em; font-weight: bold;" id="reportInProgressVehicles">0</div>
+                        <div>Devam Eden</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                        <div style="font-size: 2em; font-weight: bold;" id="reportTotalRevenue">0₺</div>
+                        <div>Tahmini Gelir</div>
+                    </div>
+                </div>
+                
+                <!-- Yıkama Türü Dağılımı -->
+                <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">🚿 Yıkama Türü Dağılımı</h4>
+                    <div id="washTypeChart"></div>
+                </div>
+                
+                <!-- Saatlik Dağılım -->
+                <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">⏰ Saatlik Araç Girişi</h4>
+                    <div id="hourlyChart"></div>
+                </div>
+                
+                <!-- Detaylı Liste -->
+                <div style="background: white; padding: 20px; border-radius: 10px;">
+                    <h4 style="margin-bottom: 15px;">📋 Bugünkü Tüm İşlemler</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 10px; border: 1px solid #ddd;">Saat</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Plaka</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Müşteri</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Yıkama Türü</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Durum</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">Süre</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button class="btn btn-secondary" style="margin-top: 20px;" onclick="showManagementScreen()">
+                    ← Yönetim Paneline Dön
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration - Kendi Firebase config'inizi buraya ekleyin
+        const firebaseConfig = {
+            apiKey: "demo-key",
+            authDomain: "demo-project.firebaseapp.com",
+            databaseURL: "https://demo-project-default-rtdb.firebaseio.com/",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "demo-app-id"
+        };
+        
+        // Firebase'i simüle et (gerçek projede firebase.initializeApp(firebaseConfig) kullanın)
+        let vehicles = [];
+        let currentUser = null;
+        let currentUserType = null;
+        let onlineUsers = 0;
+        
+        // Demo çalışan bilgileri
+        const employees = {
+            'admin': { password: '123456', type: 'yonetici', name: 'Yönetici' },
+            'calisan1': { password: '123456', type: 'calisan', name: 'Ahmet Çalışan' },
+            'calisan2': { password: '123456', type: 'calisan', name: 'Mehmet Çalışan' }
+        };
+        
+        function showLoginScreen() {
+            hideAllScreens();
+            document.getElementById('loginScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'none';
+        }
+        
+        function showEmployeeLogin() {
+            hideAllScreens();
+            document.getElementById('employeeLoginScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'block';
+        }
+        
+        function showCustomerSearch() {
+            hideAllScreens();
+            document.getElementById('customerSearchScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'block';
+        }
+        
+        function showVehicleForm() {
+            hideAllScreens();
+            document.getElementById('vehicleFormScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'block';
+        }
+        
+        function showManagementScreen() {
+            if (!currentUser) {
+                alert('Önce giriş yapmalısınız!');
+                showLoginScreen();
+                return;
+            }
+            
+            hideAllScreens();
+            document.getElementById('managementScreen').classList.add('active');
+            document.getElementById('currentUser').textContent = currentUser;
+            document.getElementById('currentUserType').textContent = currentUserType === 'yonetici' ? 'Yönetici' : 'Çalışan';
+            document.getElementById('backBtn').style.display = 'none';
+            
+            renderVehicleTable();
+            updateCounts();
+        }
+        
+        function hideAllScreens() {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+        }
+        
+        function goBack() {
+            if (currentUser) {
+                showManagementScreen();
+            } else {
+                showLoginScreen();
+            }
+        }
+        
+        function checkEmployeeAccess(action) {
+            if (!currentUser) {
+                alert('Bu işlem için önce çalışan girişi yapmalısınız!');
+                showEmployeeLogin();
+                return;
+            }
+            
+            if (action === 'vehicle') {
+                showVehicleForm();
+            }
+        }
+        
+        function addVehicleFromPanel(event) {
+            event.preventDefault();
+            
+            const vehicleData = {
+                id: Date.now(),
+                plaka: document.getElementById('quickVehiclePlaka').value.trim().toUpperCase(),
+                vehicleType: document.getElementById('quickVehicleType').value,
+                customerName: document.getElementById('quickCustomerName').value.trim(),
+                customerPhone: document.getElementById('quickCustomerPhone').value.trim(),
+                washType: document.getElementById('quickWashType').value,
+                specialNotes: '',
+                status: 'sirada',
+                startTime: new Date(),
+                addedBy: currentUser,
+                addedDate: new Date().toDateString()
+            };
+            
+            // Plaka kontrolü
+            if (vehicles.find(v => v.plaka === vehicleData.plaka)) {
+                alert('Bu plaka zaten sistemde kayıtlı!');
+                return;
+            }
+            
+            vehicles.push(vehicleData);
+            
+            // Form'u temizle
+            event.target.reset();
+            
+            saveToFirebase();
+            renderVehicleTable();
+            updateCounts();
+            
+            alert('Araç başarıyla sıraya eklendi!');
+        }
+        
+        function employeeLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const employeeType = document.getElementById('employeeType').value;
+            
+            const employee = employees[username];
+            
+            if (employee && employee.password === password && employee.type === employeeType) {
+                currentUser = employee.name;
+                currentUserType = employee.type;
+                
+                // Form'u temizle
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('employeeType').value = '';
+                
+                showManagementScreen();
+            } else {
+                alert('Hatalı giriş bilgileri!');
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            currentUserType = null;
+            showLoginScreen();
+        }
+        
+        function searchPlaka() {
+            const plaka = document.getElementById('plakaSearchInput').value.trim().toUpperCase();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (!plaka) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+            
+            const vehicle = vehicles.find(v => v.plaka === plaka);
+            
+            if (vehicle) {
+                const statusText = {
+                    'sirada': '⏳ Sırada bekliyor',
+                    'iceride': '🚿 Yıkama alanında',
+                    'yapiliyor': '⚙️ Yıkama devam ediyor',
+                    'bitti': '✅ Yıkama tamamlandı'
+                };
+                
+                const duration = calculateDuration(vehicle.startTime);
+                
+                resultsDiv.innerHTML = `
+                    <div class="search-result">
+                        <h3 style="color: #2196F3; margin-bottom: 15px;">📋 Araç Bilgileri</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div><strong>Plaka:</strong> ${vehicle.plaka}</div>
+                            <div><strong>Müşteri:</strong> ${vehicle.customerName}</div>
+                            <div><strong>Araç Tipi:</strong> ${vehicle.vehicleType}</div>
+                            <div><strong>Yıkama Tipi:</strong> ${vehicle.washType}</div>
+                        </div>
+                        <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.2em; font-weight: bold; color: #1976d2; margin-bottom: 5px;">
+                                ${statusText[vehicle.status]}
+                            </div>
+                            <div style="color: #666;">
+                                Geçen süre: ${duration}
+                            </div>
+                        </div>
+                        ${vehicle.specialNotes ? `<div style="margin-top: 15px;"><strong>Notlar:</strong> ${vehicle.specialNotes}</div>` : ''}
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="search-result" style="text-align: center; color: #666;">
+                        <h3>❌ Plaka bulunamadı</h3>
+                        <p>Bu plaka numarası sistemde kayıtlı değil.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function addVehicle(event) {
+            event.preventDefault();
+            
+            const vehicleData = {
+                id: Date.now(),
+                plaka: document.getElementById('vehiclePlaka').value.trim().toUpperCase(),
+                vehicleType: document.getElementById('vehicleType').value,
+                customerName: document.getElementById('customerName').value.trim(),
+                customerPhone: document.getElementById('customerPhone').value.trim(),
+                washType: document.getElementById('washType').value,
+                specialNotes: document.getElementById('specialNotes').value.trim(),
+                status: 'sirada',
+                startTime: new Date(),
+                addedBy: currentUser,
+                addedDate: new Date().toDateString()
+            };
+            
+            // Plaka kontrolü
+            if (vehicles.find(v => v.plaka === vehicleData.plaka)) {
+                alert('Bu plaka zaten sistemde kayıtlı!');
+                return;
+            }
+            
+            vehicles.push(vehicleData);
+            
+            // Form'u temizle
+            event.target.reset();
+            
+            // Firebase'e kaydet (simülasyon)
+            saveToFirebase();
+            
+            alert('Araç başarıyla kaydedildi ve sıraya eklendi!');
+            showManagementScreen();
+        }
+        
+        function showDailyReport() {
+            hideAllScreens();
+            document.getElementById('dailyReportScreen').classList.add('active');
+            document.getElementById('backBtn').style.display = 'block';
+            generateDailyReport();
+        }
+        
+        function generateDailyReport() {
+            const today = new Date().toDateString();
+            const todayVehicles = vehicles.filter(v => v.addedDate === today);
+            
+            // Tarih göster
+            document.getElementById('reportDate').textContent = new Date().toLocaleDateString('tr-TR');
+            
+            // Temel istatistikler
+            const totalVehicles = todayVehicles.length;
+            const completedVehicles = todayVehicles.filter(v => v.status === 'bitti').length;
+            const inProgressVehicles = todayVehicles.filter(v => v.status !== 'bitti').length;
+            
+            // Tahmini gelir (yıkama türüne göre fiyatlar)
+            const washPrices = {
+                'dis-yikama': 50,
+                'ic-dis-yikama': 80,
+                'detay-yikama': 150,
+                'motor-yikama': 100
+            };
+            
+            const totalRevenue = todayVehicles.reduce((sum, v) => {
+                return sum + (washPrices[v.washType] || 50);
+            }, 0);
+            
+            document.getElementById('reportTotalVehicles').textContent = totalVehicles;
+            document.getElementById('reportCompletedVehicles').textContent = completedVehicles;
+            document.getElementById('reportInProgressVehicles').textContent = inProgressVehicles;
+            document.getElementById('reportTotalRevenue').textContent = totalRevenue;
+            
+            // Yıkama türü dağılımı
+            const washTypeCount = {};
+            todayVehicles.forEach(v => {
+                washTypeCount[v.washType] = (washTypeCount[v.washType] || 0) + 1;
+            });
+            
+            let washTypeChart = '<div style="display: flex; gap: 15px; flex-wrap: wrap;">';
+            Object.entries(washTypeCount).forEach(([type, count]) => {
+                const typeNames = {
+                    'dis-yikama': 'Dış Yıkama',
+                    'ic-dis-yikama': 'İç Dış Yıkama',
+                    'detay-yikama': 'Detaylı Yıkama',
+                    'motor-yikama': 'Motor Yıkama'
+                };
+                washTypeChart += `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; flex: 1; min-width: 120px;">
+                        <div style="font-size: 1.5em; font-weight: bold; color: #2196f3;">${count}</div>
+                        <div style="font-size: 0.9em;">${typeNames[type]}</div>
+                    </div>
+                `;
+            });
+            washTypeChart += '</div>';
+            document.getElementById('washTypeChart').innerHTML = washTypeChart;
+            
+            // Saatlik dağılım
+            const hourlyCount = {};
+            for (let i = 8; i <= 20; i++) {
+                hourlyCount[i] = 0;
+            }
+            
+            todayVehicles.forEach(v => {
+                const hour = new Date(v.startTime).getHours();
+                if (hourlyCount[hour] !== undefined) {
+                    hourlyCount[hour]++;
+                }
+            });
+            
+            let hourlyChart = '<div style="display: flex; align-items: end; gap: 5px; height: 150px;">';
+            Object.entries(hourlyCount).forEach(([hour, count]) => {
+                const height = count > 0 ? (count * 20) + 20 : 5;
+                hourlyChart += `
+                    <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                        <div style="background: #2196f3; width: 100%; height: ${height}px; border-radius: 3px 3px 0 0; margin-bottom: 5px; display: flex; align-items: end; justify-content: center; color: white; font-size: 0.8em; font-weight: bold;">
+                            ${count > 0 ? count : ''}
+                        </div>
+                        <div style="font-size: 0.8em;">${hour}:00</div>
+                    </div>
+                `;
+            });
+            hourlyChart += '</div>';
+            document.getElementById('hourlyChart').innerHTML = hourlyChart;
+            
+            // Detaylı tablo
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+            
+            todayVehicles.forEach(vehicle => {
+                const row = document.createElement('tr');
+                const addTime = new Date(vehicle.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                const duration = calculateDuration(vehicle.startTime);
+                
+                const statusText = {
+                    'sirada': '⏳ Sırada',
+                    'iceride': '🚿 İçeride',
+                    'yapiliyor': '⚙️ Yapılıyor',
+                    'bitti': '✅ Bitti'
+                };
+                
+                const washTypeNames = {
+                    'dis-yikama': 'Dış Yıkama',
+                    'ic-dis-yikama': 'İç Dış Yıkama',
+                    'detay-yikama': 'Detaylı Yıkama',
+                    'motor-yikama': 'Motor Yıkama'
+                };
+                
+                row.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #ddd;">${addTime}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">${vehicle.plaka}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${vehicle.customerName}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${washTypeNames[vehicle.washType]}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${statusText[vehicle.status]}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${duration}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function changeVehicleStatus(id, newStatus) {
+            const vehicle = vehicles.find(v => v.id === id);
+            if (vehicle) {
+                vehicle.status = newStatus;
+                if (newStatus === 'iceride' || newStatus === 'yapiliyor') {
+                    vehicle.startTime = new Date();
+                }
+                
+                saveToFirebase();
+                renderVehicleTable();
+                updateCounts();
+            }
+        }
+        
+        function deleteVehicle(id) {
+            if (confirm('Bu aracı sistemden silmek istediğinizden emin misiniz?')) {
+                vehicles = vehicles.filter(v => v.id !== id);
+                saveToFirebase();
+                renderVehicleTable();
+                updateCounts();
+            }
+        }
+        
+        function renderVehicleTable() {
+            const tbody = document.getElementById('plakaTableBody');
+            tbody.innerHTML = '';
+            
+            // Duruma göre sıralama
+            const sortedVehicles = [...vehicles].sort((a, b) => {
+                const statusOrder = { 'sirada': 1, 'iceride': 2, 'yapiliyor': 3, 'bitti': 4 };
+                return statusOrder[a.status] - statusOrder[b.status];
+            });
+            
+            sortedVehicles.forEach(vehicle => {
+                const row = document.createElement('tr');
+                const duration = calculateDuration(vehicle.startTime);
+                
+                row.innerHTML = `
+                    <td style="font-weight: bold;">${vehicle.plaka}</td>
+                    <td>${vehicle.customerName}</td>
+                    <td>${vehicle.vehicleType}</td>
+                    <td>${vehicle.washType}</td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'sirada' ? 'status-sirada' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'sirada')">
+                            ${vehicle.status === 'sirada' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'iceride' ? 'status-iceride' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'iceride')">
+                            ${vehicle.status === 'iceride' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'yapiliyor' ? 'status-yapiliyor' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'yapiliyor')">
+                            ${vehicle.status === 'yapiliyor' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td>
+                        <button class="status-btn ${vehicle.status === 'bitti' ? 'status-bitti' : ''}" 
+                                onclick="changeVehicleStatus(${vehicle.id}, 'bitti')">
+                            ${vehicle.status === 'bitti' ? '✓' : '○'}
+                        </button>
+                    </td>
+                    <td style="font-size: 0.9em; color: #666;">${duration}</td>
+                    <td>
+                        ${currentUserType === 'yonetici' ? 
+                            `<button style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" 
+                                    onclick="deleteVehicle(${vehicle.id})">Sil</button>` : 
+                            '<span style="color: #999;">-</span>'
+                        }
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function updateCounts() {
+            const counts = {
+                sirada: vehicles.filter(v => v.status === 'sirada').length,
+                iceride: vehicles.filter(v => v.status === 'iceride').length,
+                yapiliyor: vehicles.filter(v => v.status === 'yapiliyor').length,
+                bitti: vehicles.filter(v => v.status === 'bitti').length
+            };
+            
+            // Günlük toplam
+            const today = new Date().toDateString();
+            const todayCount = vehicles.filter(v => v.addedDate === today).length;
+            
+            document.getElementById('siradaCount').textContent = counts.sirada;
+            document.getElementById('icerideCount').textContent = counts.iceride;
+            document.getElementById('yapiliyorCount').textContent = counts.yapiliyor;
+            document.getElementById('bittiCount').textContent = counts.bitti;
+            
+            if (document.getElementById('todayCount')) {
+                document.getElementById('todayCount').textContent = todayCount;
+            }
+        }
+        
+        function calculateDuration(startTime) {
+            const now = new Date();
+            const diff = now - startTime;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            
+            if (hours > 0) {
+                return `${hours}s ${minutes}dk`;
+            } else if (minutes > 0) {
+                return `${minutes}dk ${seconds}sn`;
+            } else {
+                return `${seconds}sn`;
+            }
+        }
+        
+        function saveToFirebase() {
+            // Gerçek projede Firebase'e kaydetme işlemi
+            // firebase.database().ref('vehicles').set(vehicles);
+            console.log('Firebase\'e kaydedildi:', vehicles);
+            
+            // Diğer kullanıcılara broadcast
+            broadcastUpdate();
+        }
+        
+        function loadFromFirebase() {
+            // Gerçek projede Firebase'den veri çekme
+            // firebase.database().ref('vehicles').on('value', (snapshot) => {
+            //     vehicles = snapshot.val() || [];
+            //     renderVehicleTable();
+            //     updateCounts();
+            // });
+        }
+        
+        function broadcastUpdate() {
+            // Gerçek projede socket.io veya Firebase realtime ile
+            console.log('Güncelleme broadcast edildi');
+        }
+        
+        // Demo veriler
+        function loadDemoData() {
+            vehicles = [
+                {
+                    id: 1,
+                    plaka: '34ABC123',
+                    vehicleType: 'otomobil',
+                    customerName: 'Ahmet Yılmaz',
+                    customerPhone: '0555 123 45 67',
+                    washType: 'ic-dis-yikama',
+                    specialNotes: 'Dikkatli yıkanacak',
+                    status: 'sirada',
+                    startTime: new Date(Date.now() - 600000),
+                    addedBy: 'Demo'
+                },
+                {
+                    id: 2,
+                    plaka: '06DEF456',
+                    vehicleType: 'suv',
+                    customerName: 'Mehmet Kaya',
+                    customerPhone: '0532 987 65 43',
+                    washType: 'detay-yikama',
+                    specialNotes: '',
+                    status: 'iceride',
+                    startTime: new Date(Date.now() - 300000),
+                    addedBy: 'Demo'
+                }
+            ];
+        }
+        
+        // Süreleri güncelle
+        setInterval(() => {
+            if (currentUser && document.getElementById('managementScreen').classList.contains('active')) {
+                renderVehicleTable();
+            }
+        }, 1000);
+        
+        // Online kullanıcı simülasyonu
+        setInterval(() => {
+            onlineUsers = Math.floor(Math.random() * 6) + 1;
+            document.getElementById('userCount').textContent = onlineUsers;
+        }, 5000);
+        
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            // Demo verilerini yükle
+            loadDemoData();
+            
+            // Firebase bağlantısını başlat (gerçek projede)
+            // loadFromFirebase();
+            
+            // Plaka arama için enter tuşu
+            document.getElementById('plakaSearchInput').addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+        });
+    </script>
+</body>
+</html>
