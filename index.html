@@ -868,7 +868,7 @@
     <script type="module">
         // Firebase kütüphanelerini içe aktarma
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, setDoc, getDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
 
         /*
@@ -1526,6 +1526,42 @@
                 return;
             }
 
+            // --- Optimistic UI Update Start ---
+            // Tıklanan araç kartını bul
+            const carCardElement = document.querySelector(`.car-card [onclick*="updateCarStatus('${carId}'"]`).closest('.car-card');
+            if (carCardElement) {
+                // Durum kontrol butonlarını güncelle
+                const statusControls = carCardElement.querySelector('.status-controls');
+                if (statusControls) {
+                    const buttons = statusControls.querySelectorAll('.status-btn');
+                    buttons.forEach(button => {
+                        const btnStatusMatch = button.getAttribute('onclick').match(/'([^']+)'\)$/);
+                        const btnStatus = btnStatusMatch ? btnStatusMatch[1] : '';
+                        if (btnStatus === newStatus) {
+                            button.classList.add('active');
+                        } else {
+                            button.classList.remove('active');
+                        }
+                    });
+                }
+                // Görünen durum metnini ve rengini güncelle
+                const statusElement = carCardElement.querySelector('.status');
+                if (statusElement) {
+                    const statusTexts = {
+                        'waiting': 'Sırada',
+                        'washing': 'Yıkanıyor',
+                        'drying': 'Kurutuluyor',
+                        'ready': 'Hazır',
+                        'completed': 'Tamamlandı'
+                    };
+                    statusElement.textContent = statusTexts[newStatus];
+                    // Mevcut tüm durum sınıflarını kaldır ve yeni durumu ekle
+                    statusElement.className = 'status'; // Tüm mevcut durum sınıflarını kaldır
+                    statusElement.classList.add(newStatus); // Yeni durumu ekle
+                }
+            }
+            // --- Optimistic UI Update End ---
+
             try {
                 await updateDoc(doc(db, 'cars', carId), {
                     status: newStatus,
@@ -1533,18 +1569,14 @@
                     updatedBy: currentUser.name
                 });
 
-                const statusTexts = {
-                    'waiting': 'Sırada',
-                    'washing': 'Yıkanıyor',
-                    'drying': 'Kurutuluyor',
-                    'ready': 'Hazır',
-                    'completed': 'Tamamlandı'
-                };
-
-                showNotification('Durum güncellendi: ' + statusTexts[newStatus], 'success');
+                // Real-time listener zaten UI'ı Firestore'dan gelen güncel veriyle tekrar render edecektir.
+                // Bu yüzden burada sadece genel bir başarı bildirimi yeterlidir.
+                showNotification('Durum güncellendi', 'success');
             } catch (error) {
                 console.error('Durum güncelleme hatası:', error);
-                showNotification('Durum güncelleme hatası', 'error');
+                showNotification('Durum güncelleme hatası: ' + error.message, 'error');
+                // Hata durumunda UI'ın otomatik olarak eski duruma dönmesi veya hatanın kullanıcıya açıkça bildirilmesi gerekir.
+                // onSnapshot listener'ı otomatik olarak doğru durumu çekeceği için manuel bir geri alma işlemi gerekli değildir.
             }
         };
 
@@ -1616,37 +1648,56 @@
             }
         };
 
-        // Geri bildirim yönetimi
-        window.markFeedbackAsRead = async function(feedbackId) {
-            try {
-                await updateDoc(doc(db, 'feedbacks', feedbackId), {
-                    isRead: true
-                });
-                showNotification('Geri bildirim okundu olarak işaretlendi', 'success');
-            } catch (error) {
-                console.error('Geri bildirim güncelleme hatası:', error);
-                showNotification('İşlem başarısız', 'error');
+        // Kullanıcı şifresini sıfırla (sadece admin)
+        window.resetUserPassword = async function(userEmail) {
+            if (!currentUser || currentUser.role !== 'admin') {
+                showNotification('Admin yetkisi gerekli', 'error');
+                return;
             }
-        };
 
-        window.deleteFeedback = async function(feedbackId) {
-            if (!confirm('Bu geri bildirimi silmek istediğinizden emin misiniz?')) {
+            if (!confirm(`'${userEmail}' kullanıcısının şifresini sıfırlamak istediğinizden emin misiniz? Bu işlem, kullanıcının e-posta adresine bir şifre sıfırlama bağlantısı gönderecektir.`)) {
                 return;
             }
 
             try {
-                await deleteDoc(doc(db, 'feedbacks', feedbackId));
-                showNotification('Geri bildirim silindi', 'success');
+                await sendPasswordResetEmail(auth, userEmail);
+                showNotification(`${userEmail} adresine şifre sıfırlama e-postası gönderildi.`, 'success');
             } catch (error) {
-                console.error('Geri bildirim silme hatası:', error);
-                showNotification('Silme işlemi başarısız', 'error');
+                console.error('Şifre sıfırlama hatası:', error);
+                let errorMessage = 'Şifre sıfırlama başarısız.';
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'Kullanıcı bulunamadı.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Geçersiz e-posta adresi.';
+                }
+                showNotification(`Şifre sıfırlama hatası: ${errorMessage}`, 'error');
+            }
+        };
+
+        // Kullanıcıyı sil (sadece admin, Firestore belgesini siler)
+        window.deleteUserFromFirestore = async function(userId, userEmail) {
+            if (!currentUser || currentUser.role !== 'admin') {
+                showNotification('Admin yetkisi gerekli', 'error');
+                return;
+            }
+
+            if (!confirm(`'${userEmail}' kullanıcısını silmek istediğinizden emin misiniz? Bu işlem, kullanıcının sadece veritabanı kaydını silecektir. Firebase Authentication'daki gerçek kullanıcı hesabı bu yöntemle silinemez ve bunun için bir backend (örneğin Firebase Cloud Functions) gereklidir.`)) {
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(db, 'users', userId));
+                showNotification(`${userEmail} kullanıcısının veritabanı kaydı silindi.`, 'success');
+            } catch (error) {
+                console.error('Kullanıcı silme hatası:', error);
+                showNotification('Kullanıcı silme hatası: ' + error.message, 'error');
             }
         };
 
         // Detay çekmecesini açıp kapatan fonksiyon
-        window.toggleCarDetails = function(event, carId) {
+        window.toggleCarDetails = function(event, id) {
             event.stopPropagation(); // Event'in parent elementlere yayılmasını engelle
-            const wrapper = document.getElementById(`car-details-wrapper-${carId}`);
+            const wrapper = document.getElementById(`car-details-wrapper-${id}`);
             const button = event.currentTarget;
             const icon = button.querySelector('.toggle-icon');
 
@@ -1812,6 +1863,15 @@
                             '<div class="detail-label">Oluşturulma</div>' +
                             '<div class="detail-value">' + createdDate + '</div>' +
                             '</div>' +
+                        '</div>' +
+                        '<div class="button-group">' +
+                            `<button class="btn btn-secondary" onclick="resetUserPassword('${user.email}')">
+                                <i class="fa-solid fa-key"></i> Şifreyi Sıfırla
+                            </button>` +
+                            // Adminin kendisini silmesini engelle
+                            (user.id !== currentUser.uid ? `<button class="btn btn-danger" onclick="deleteUserFromFirestore('${user.id}', '${user.email}')">
+                                <i class="fa-solid fa-user-minus"></i> Kullanıcıyı Sil (DB)
+                            </button>` : '<span style="font-size: 12px; color: #777;">Kendi hesabınızı buradan silemezsiniz.</span>') +
                         '</div>' +
                     '</div>' +
                     `<button class="btn btn-secondary toggle-details-btn" onclick="toggleCarDetails(event, '${user.id}')">
