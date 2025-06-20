@@ -828,7 +828,7 @@
     <div id="notification" class="notification"></div>
 
     <script type="module">
-        // Firebase kütüphanelerini içe aktarma
+        // Firebase kütüphanelerini içe aktırma
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, setDoc, getDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
@@ -842,6 +842,14 @@
          *
          * Aşağıdaki örnek kurallar, uygulamanın çalışması için gerekli minimum izinleri sağlar.
          * Kendi uygulamanızın güvenlik gereksinimlerine göre bu kuralları daha fazla özelleştirmelisiniz.
+         *
+         * Özellikle, oturum açmamış kullanıcıların plaka sorgulaması yapabilmesi için 'cars' koleksiyonu için 'read' iznini
+         * kimlik doğrulaması yapılmamış kullanıcılara da vermelisiniz. Örneğin:
+         *
+         * match /cars/{carId} {
+         * allow read: if true; // Oturum açmamış kullanıcıların da okumasına izin verir
+         * // Diğer kurallar (create, update, delete) aynen kalabilir veya isteğinize göre düzenlenebilir.
+         * }
          *
          * Firebase Konsolunuzda (console.firebase.google.com) aşağıdaki kuralları yapıştırın:
          */
@@ -860,16 +868,17 @@
             }
 
             // 'cars' koleksiyonu için kurallar
-            // Tüm kimlik doğrulaması yapılmış kullanıcılar araçları okuyabilir.
-            // Sadece kimlik doğrulaması yapılmış kullanıcılar araç ekleyebilir (şimdilik, daha sonra rol tabanlı eklenebilir).
-            // Sadece kimlik doğrulaması yapılmış kullanıcılar durumu güncelleyebilir.
-            // Sadece adminler araç silebilir.
+            // TÜM KULLANICILAR (Oturum Açmamış Dahil) araçları okuyabilir.
             match /cars/{carId} {
-              allow read: if isSignedIn();
+              allow read: if true; // Burası değiştirildi.
+              // Sadece kimlik doğrulaması yapılmış kullanıcılar araç ekleyebilir.
               allow create: if isSignedIn();
+              // Sadece kimlik doğrulaması yapılmış kullanıcılar durumu güncelleyebilir.
               allow update: if isSignedIn();
+              // Sadece adminler araç silebilir.
               allow delete: if isAdmin();
             }
+
 
             // 'feedbacks' koleksiyonu için kurallar
             // Tüm kimlik doğrulaması yapılmış kullanıcılar geri bildirim oluşturabilir.
@@ -969,6 +978,38 @@
                 console.log("Firebase başarıyla başlatıldı");
                 showNotification("Firebase bağlantısı kuruldu", "success");
                 
+                // Araçlar için dinleyiciyi burada başlat (oturum durumu bağımsız)
+                const carsQuery = query(collection(db, 'cars'), orderBy('createdAt', 'desc'));
+                const carsUnsub = onSnapshot(carsQuery, (snapshot) => {
+                    const prevCarsCount = cars.length;
+                    cars.length = 0; // Diziyi temizle
+                    cars.push(...snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    })));
+                    
+                    console.log('Araç listesi güncellendi: ' + cars.length + ' araç');
+                    
+                    // Yeni araç eklenirse bildirim göster (sadece oturum açmış kullanıcılar için anlamlı olabilir)
+                    if (currentUser && cars.length > prevCarsCount && prevCarsCount > 0) {
+                        const newCar = cars[0]; // En yeni araç
+                        showNotification('Yeni araç eklendi: ' + newCar.plate, 'info');
+                    }
+                    
+                    renderCarLists(); // Araç listelerini yeniden render et
+                    
+                    // Müşteri ekranındaysa aramayı tekrar yap
+                    const plateSearchInput = document.getElementById('plateSearch');
+                    if (document.getElementById('customerScreen').classList.contains('active') && 
+                        plateSearchInput && plateSearchInput.value.trim().length >= 2) {
+                        searchCar();
+                    }
+                }, (error) => {
+                    console.error("Cars real-time listener hatası:", error);
+                    showNotification("Bağlantı sorunu: Araç verileri güncellenemiyor", "error");
+                });
+                unsubscribers.push(carsUnsub); // Dinleyiciyi kaydet
+
                 // Kimlik doğrulama durumu değiştiğinde UI'ı güncelle
                 onAuthStateChanged(auth, async (user) => {
                     console.log("Auth state değişti:", user ? user.uid : "Çıkış yapıldı");
@@ -1012,7 +1053,7 @@
                     console.log("Kullanıcı verisi yüklendi:", currentUser);
                     showNotification('Hoş geldiniz ' + currentUser.name + '!', 'success');
                     updateUI(); // UI'ı kullanıcının rolüne göre güncelle
-                    setupRealtimeListeners(); // Gerçek zamanlı dinleyicileri başlat
+                    setupRealtimeListeners(); // Gerçek zamanlı dinleyicileri başlat (sadece feedback ve users için artık)
                     
                     // Kullanıcı rolüne göre varsayılan paneli göster
                     if (currentUser.role === 'admin') {
@@ -1077,43 +1118,12 @@
 
         // Gerçek zamanlı dinleyicileri başlat
         function setupRealtimeListeners() {
-            // Önceki dinleyicileri kapat
-            unsubscribers.forEach(unsub => unsub());
-            unsubscribers.length = 0;
+            // Sadece adminler için gerekli dinleyicileri kapat/yeniden başlat
+            // cars dinleyicisi artık initFirebase() içinde başlıyor
+            unsubscribers.forEach(unsub => unsub()); // Önceki dinleyicileri kapat
+            unsubscribers.length = 0; // Diziyi temizle
 
-            console.log("Real-time dinleyiciler başlatılıyor...");
-
-            // Araçlar için dinleyici
-            const carsQuery = query(collection(db, 'cars'), orderBy('createdAt', 'desc'));
-            const carsUnsub = onSnapshot(carsQuery, (snapshot) => {
-                const prevCarsCount = cars.length;
-                cars.length = 0; // Diziyi temizle
-                cars.push(...snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })));
-                
-                console.log('Araç listesi güncellendi: ' + cars.length + ' araç');
-                
-                // Yeni araç eklenirse bildirim göster
-                if (cars.length > prevCarsCount && prevCarsCount > 0) {
-                    const newCar = cars[0]; // En yeni araç
-                    showNotification('Yeni araç eklendi: ' + newCar.plate, 'info');
-                }
-                
-                renderCarLists(); // Araç listelerini yeniden render et
-                
-                // Müşteri ekranındaysa aramayı tekrar yap
-                const plateSearchInput = document.getElementById('plateSearch');
-                if (document.getElementById('customerScreen').classList.contains('active') && 
-                    plateSearchInput && plateSearchInput.value.trim().length >= 2) {
-                    searchCar();
-                }
-            }, (error) => {
-                console.error("Cars real-time listener hatası:", error);
-                showNotification("Bağlantı sorunu: Araç verileri güncellenemiyor", "error");
-            });
-            unsubscribers.push(carsUnsub); // Dinleyiciyi kaydet
+            console.log("Real-time dinleyiciler başlatılıyor (kullanıcıya özel)...");
 
             // Admin ise geri bildirim ve kullanıcı dinleyicilerini başlat
             if (currentUser && currentUser.role === 'admin') {
@@ -1190,8 +1200,8 @@
         window.logout = async function() {
             try {
                 await signOut(auth);
-                // Tüm dinleyicileri kapat
-                unsubscribers.forEach(unsub => unsub());
+                // Tüm dinleyicileri kapat (cars dinleyicisi initFirebase içinde olduğu için yeniden başlatılacak)
+                unsubscribers.forEach(unsub => unsub()); 
                 unsubscribers.length = 0;
                 showNotification('Çıkış yapıldı', 'success');
                 showCustomerSearch(); // Müşteri ekranına geri dön
@@ -1383,16 +1393,14 @@
             const customerName = document.getElementById('customerNameFeedback').value.trim();
 
             try {
-                const feedbackData = {
+                await addDoc(collection(db, 'feedbacks'), {
                     plate: searchedPlate,
                     rating: selectedRating,
                     comment: comment || null,
                     customerName: customerName || 'Anonim',
                     createdAt: Timestamp.now(),
                     isRead: false
-                };
-
-                await addDoc(collection(db, 'feedbacks'), feedbackData);
+                });
                 showNotification('Geri bildiriminiz gönderildi. Teşekkürler!', 'success');
                 resetFeedbackForm(); // Formu sıfırla
                 
