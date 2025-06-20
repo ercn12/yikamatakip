@@ -974,14 +974,14 @@
                     console.log("Auth state değişti:", user ? user.uid : "Çıkış yapıldı");
                     if (user) {
                         await loadUserData(user);
+                        // Kullanıcı verisi yüklendikten sonra günlük temizliği kontrol et
+                        checkDailyCleanup(); 
                     } else {
                         currentUser = null;
                         updateUI();
                         showCustomerSearch(); // Çıkış yapıldığında müşteri sorgu ekranına dön
                     }
                 });
-
-                checkDailyCleanup(); // Günlük temizliği kontrol et
                 
             } catch (error) {
                 console.error("Firebase başlatma hatası:", error);
@@ -1025,7 +1025,8 @@
                     showNotification('Kullanıcı profili bulunamadı. Lütfen yöneticinize başvurun.', 'error');
                     await signOut(auth); // Profil bulunamazsa çıkış yap
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Kullanıcı verisi yükleme hatası:", error);
                 showNotification('Kullanıcı bilgileri yüklenirken hata oluştu: ' + error.message, 'error');
                 await signOut(auth); // Hata durumunda çıkış yap
@@ -1034,6 +1035,13 @@
 
         // Günlük temizlik (eski araç kayıtlarını siler)
         async function checkDailyCleanup() {
+            // Sadece adminler günlük temizliği yapabilir
+            if (!currentUser || currentUser.role !== 'admin') {
+                console.warn("Günlük temizlik admin yetkisi olmadan deneniyor. İşlem iptal edildi.");
+                // showNotification("Günlük temizlik için yönetici yetkisi gerekli.", "error"); // Bu bildirim çok sık çıkabilir, sadece konsola logladık
+                return; 
+            }
+
             const today = new Date().toDateString();
             const lastCleanup = localStorage.getItem('lastCleanup');
             
@@ -1063,6 +1071,7 @@
                 console.log(oldCarsSnapshot.size + ' eski araç kaydı temizlendi');
             } catch (error) {
                 console.error("Günlük temizlik hatası:", error);
+                showNotification("Günlük temizlik sırasında hata oluştu: " + error.message, "error");
             }
         }
 
