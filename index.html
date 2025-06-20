@@ -254,6 +254,20 @@
             gap: 15px;
             margin-top: 15px;
         }
+        
+        /* Çekmece içeriği için yeni stil */
+        .car-details-wrapper {
+            max-height: 0; /* Varsayılan olarak gizli */
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            opacity: 0;
+        }
+
+        .car-details-wrapper.expanded {
+            max-height: 500px; /* Açıkken maksimum yükseklik */
+            opacity: 1;
+        }
+
 
         /* Detay öğesi stilleri */
         .detail-item {
@@ -593,6 +607,29 @@
                 font-size: 28px;
             }
         }
+
+        /* Detayları göster/gizle düğmesi için stil */
+        .toggle-details-btn {
+            background: #f0f0f0;
+            color: #555;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            margin-top: 10px; /* Detaylar ve düğme arasında boşluk */
+            width: 100%; /* Düğmeyi tam genişlik yap */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-details-btn:hover {
+            background: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -828,7 +865,7 @@
     <div id="notification" class="notification"></div>
 
     <script type="module">
-        // Firebase kütüphanelerini içe aktırma
+        // Firebase kütüphanelerini içe aktarma
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, onSnapshot, setDoc, getDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
@@ -846,61 +883,53 @@
          * Özellikle, oturum açmamış kullanıcıların plaka sorgulaması yapabilmesi için 'cars' koleksiyonu için 'read' iznini
          * kimlik doğrulaması yapılmamış kullanıcılara da vermelisiniz. Örneğin:
          *
-         * match /cars/{carId} {
-         * allow read: if true; // Oturum açmamış kullanıcıların da okumasına izin verir
-         * // Diğer kurallar (create, update, delete) aynen kalabilir veya isteğinize göre düzenlenebilir.
+         * rules_version = '2';
+         * service cloud.firestore {
+         * match /databases/{database}/documents {
+         * // Kullanıcıların kimlik doğrulamasından geçmesi gerekiyor.
+         * function isSignedIn() {
+         * return request.auth != null;
          * }
          *
-         * Firebase Konsolunuzda (console.firebase.google.com) aşağıdaki kuralları yapıştırın:
+         * // Bir kullanıcının 'admin' rolüne sahip olup olmadığını kontrol eden fonksiyon.
+         * function isAdmin() {
+         * return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+         * }
+         *
+         * // 'cars' koleksiyonu için kurallar
+         * // TÜM KULLANICILAR (Oturum Açmamış Dahil) araçları okuyabilir.
+         * match /cars/{carId} {
+         * allow read: if true; // <<<<<<<<<< BURAYI KONTROL EDİN VE DEĞİŞTİRİN <<<<<<<<<<
+         * // Sadece kimlik doğrulaması yapılmış kullanıcılar araç ekleyebilir.
+         * allow create: if isSignedIn();
+         * // Sadece kimlik doğrulaması yapılmış kullanıcılar durumu güncelleyebilir.
+         * allow update: if isSignedIn();
+         * // Sadece adminler araç silebilir.
+         * allow delete: if isAdmin();
+         * }
+         *
+         *
+         * // 'feedbacks' koleksiyonu için kurallar
+         * // Tüm kimlik doğrulaması yapılmış kullanıcılar geri bildirim oluşturabilir.
+         * // Sadece adminler tüm geri bildirimleri okuyabilir, güncelleyebilir (okundu olarak işaretleme) ve silebilir.
+         * match /feedbacks/{feedbackId} {
+         * allow create: if isSignedIn();
+         * allow read, update, delete: if isAdmin();
+         * }
+         *
+         * // 'users' koleksiyonu için kurallar
+         * // Kullanıcılar kendi profillerini okuyabilir.
+         * // Yeni kullanıcılar kimlik doğrulamadan sonra kendi dokümanlarını oluşturabilir.
+         * // Adminler tüm kullanıcıları okuyabilir, oluşturabilir ve güncelleyebilir.
+         * match /users/{userId} {
+         * allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+         * allow create: if isSignedIn() && request.auth.uid == userId; // Sadece kendi profilini oluşturabilir
+         * allow update: if isAdmin(); // Sadece adminler diğer kullanıcıların rollerini/bilgilerini güncelleyebilir
+         * allow delete: if isAdmin();
+         * }
+         * }
+         * }
          */
-        /*
-        rules_version = '2';
-        service cloud.firestore {
-          match /databases/{database}/documents {
-            // Kullanıcıların kimlik doğrulamasından geçmesi gerekiyor.
-            function isSignedIn() {
-              return request.auth != null;
-            }
-
-            // Bir kullanıcının 'admin' rolüne sahip olup olmadığını kontrol eden fonksiyon.
-            function isAdmin() {
-              return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-            }
-
-            // 'cars' koleksiyonu için kurallar
-            // TÜM KULLANICILAR (Oturum Açmamış Dahil) araçları okuyabilir.
-            match /cars/{carId} {
-              allow read: if true; // Burası değiştirildi.
-              // Sadece kimlik doğrulaması yapılmış kullanıcılar araç ekleyebilir.
-              allow create: if isSignedIn();
-              // Sadece kimlik doğrulaması yapılmış kullanıcılar durumu güncelleyebilir.
-              allow update: if isSignedIn();
-              // Sadece adminler araç silebilir.
-              allow delete: if isAdmin();
-            }
-
-
-            // 'feedbacks' koleksiyonu için kurallar
-            // Tüm kimlik doğrulaması yapılmış kullanıcılar geri bildirim oluşturabilir.
-            // Sadece adminler tüm geri bildirimleri okuyabilir, güncelleyebilir (okundu olarak işaretleme) ve silebilir.
-            match /feedbacks/{feedbackId} {
-              allow create: if isSignedIn();
-              allow read, update, delete: if isAdmin();
-            }
-
-            // 'users' koleksiyonu için kurallar
-            // Kullanıcılar kendi profillerini okuyabilir.
-            // Yeni kullanıcılar kimlik doğrulamadan sonra kendi dokümanlarını oluşturabilir.
-            // Adminler tüm kullanıcıları okuyabilir, oluşturabilir ve güncelleyebilir.
-            match /users/{userId} {
-              allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-              allow create: if isSignedIn() && request.auth.uid == userId; // Sadece kendi profilini oluşturabilir
-              allow update: if isAdmin(); // Sadece adminler diğer kullanıcıların rollerini/bilgilerini güncelleyebilir
-              allow delete: if isAdmin();
-            }
-          }
-        }
-        */
 
         // Firebase yapılandırmanızı BURAYA EKLEYİN
         // Bu bilgileri Firebase Proje Ayarları -> Genel bölümünden alabilirsiniz.
@@ -976,7 +1005,7 @@
                 db = getFirestore(app);
                 
                 console.log("Firebase başarıyla başlatıldı");
-                showNotification("Firebase bağlantısı kuruldu", "success");
+                // showNotification("Firebase bağlantısı kuruldu", "success"); // Bu satır kaldırıldı
                 
                 // Araçlar için dinleyiciyi burada başlat (oturum durumu bağımsız)
                 const carsQuery = query(collection(db, 'cars'), orderBy('createdAt', 'desc'));
@@ -1006,7 +1035,11 @@
                     }
                 }, (error) => {
                     console.error("Cars real-time listener hatası:", error);
-                    showNotification("Bağlantı sorunu: Araç verileri güncellenemiyor", "error");
+                    let errorMessage = "Bağlantı sorunu: Araç verileri güncellenemiyor.";
+                    if (error.code === 'permission-denied' || error.code === 'resource-exhausted') {
+                        errorMessage = "Araç verileri yüklenemiyor: İzin hatası. Firebase kurallarını kontrol edin (cars koleksiyonu için 'read: if true;' olmalı).";
+                    }
+                    showNotification(errorMessage, "error");
                 });
                 unsubscribers.push(carsUnsub); // Dinleyiciyi kaydet
 
@@ -1139,7 +1172,11 @@
                 }, (error) => {
                     console.error("Feedbacks real-time listener hatası:", error);
                     // İzin hatası burada yakalanır ve yönetici bilgilendirilir.
-                    showNotification("Geri bildirimler yüklenemiyor: İzin hatası. Firebase kurallarını kontrol edin.", "error");
+                    let errorMessage = "Geri bildirimler yüklenemiyor: Bağlantı sorunu.";
+                    if (error.code === 'permission-denied' || error.code === 'resource-exhausted') {
+                        errorMessage = "Geri bildirimler yüklenemiyor: İzin hatası. Firebase kurallarını kontrol edin.";
+                    }
+                    showNotification(errorMessage, "error");
                 });
                 unsubscribers.push(feedbacksUnsub);
 
@@ -1154,7 +1191,11 @@
                     renderUserList(); // Kullanıcı listesini yeniden render et
                 }, (error) => {
                     console.error("Users real-time listener hatası:", error);
-                    showNotification("Kullanıcılar yüklenemiyor: İzin hatası. Firebase kurallarını kontrol edin.", "error");
+                     let errorMessage = "Kullanıcılar yüklenemiyor: Bağlantı sorunu.";
+                    if (error.code === 'permission-denied' || error.code === 'resource-exhausted') {
+                        errorMessage = "Kullanıcılar yüklenemiyor: İzin hatası. Firebase kurallarını kontrol edin.";
+                    }
+                    showNotification(errorMessage, "error");
                 });
                 unsubscribers.push(usersUnsub);
             }
@@ -1600,6 +1641,25 @@
             }
         };
 
+        // Detay çekmecesini açıp kapatan fonksiyon
+        window.toggleCarDetails = function(event, carId, expandByDefault = false) {
+            event.stopPropagation(); // Event'in parent elementlere yayılmasını engelle
+            const wrapper = document.getElementById(`car-details-wrapper-${carId}`);
+            const button = event.currentTarget;
+            const icon = button.querySelector('.toggle-icon');
+
+            if (wrapper.classList.contains('expanded')) {
+                wrapper.classList.remove('expanded');
+                icon.className = 'fa-solid fa-chevron-down toggle-icon';
+                button.innerHTML = '<i class="fa-solid fa-chevron-down toggle-icon"></i> Detayları Göster';
+            } else {
+                wrapper.classList.add('expanded');
+                icon.className = 'fa-solid fa-chevron-up toggle-icon';
+                button.innerHTML = '<i class="fa-solid fa-chevron-up toggle-icon"></i> Detayları Gizle';
+            }
+        };
+
+
         // Render fonksiyonları (UI güncellemeleri için)
         function renderCars(container, carsToRender, showActions) {
             if (carsToRender.length === 0) {
@@ -1620,7 +1680,7 @@
                 const timeStr = createdAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
                 
                 let actionsHtml = '';
-                if (showActions) {
+                if (showActions) { // Çalışan ve Admin panellerinde durum değiştirme ve silme butonları
                     actionsHtml = '<div class="status-controls">' +
                         '<button class="status-btn ' + (car.status === 'waiting' ? 'active' : '') + '" onclick="updateCarStatus(\'' + car.id + '\', \'waiting\')">' +
                         '<i class="fa-solid fa-clock"></i> Sırada</button>' +
@@ -1641,42 +1701,74 @@
                     }
                 }
 
+                // Çekmece içeriği için HTML
+                const detailsDrawerHtml = `
+                    <div id="car-details-wrapper-${car.id}" class="car-details-wrapper">
+                        <div class="car-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Müşteri</div>
+                                <div class="detail-value">${car.customerName || 'Belirtilmemiş'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Telefon</div>
+                                <div class="detail-value">${car.customerPhone || 'Belirtilmemiş'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Hizmet</div>
+                                <div class="detail-value">${car.serviceType}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Süre</div>
+                                <div class="detail-value">${car.estimatedTime ? car.estimatedTime + ' dk' : 'Belirtilmemiş'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Fiyat</div>
+                                <div class="detail-value">${car.price ? '₺' + car.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Belirtilmemiş'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Giriş Saati</div>
+                                <div class="detail-value">${timeStr}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Çekmece düğmesi
+                const toggleButtonHtml = `
+                    <button class="btn btn-secondary toggle-details-btn" onclick="toggleCarDetails(event, '${car.id}')">
+                        <i class="fa-solid fa-chevron-down toggle-icon"></i> Detayları Göster
+                    </button>
+                `;
+
                 return '<div class="car-card">' +
                     '<div class="car-header">' +
                     '<div class="plate-number">' + car.plate + '</div>' +
                     '<div class="status ' + car.status + '">' + statusTexts[car.status] + '</div>' +
                     '</div>' +
-                    '<div class="car-details">' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Müşteri</div>' +
-                    '<div class="detail-value">' + (car.customerName || 'Belirtilmemiş') + '</div>' +
-                    '</div>' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Telefon</div>' +
-                    '<div class="detail-value">' + (car.customerPhone || 'Belirtilmemiş') + '</div>' +
-                    '</div>' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Hizmet</div>' +
-                    '<div class="detail-value">' + car.serviceType + '</div>' +
-                    '</div>' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Süre</div>' +
-                    '<div class="detail-value">' + (car.estimatedTime ? car.estimatedTime + ' dk' : 'Belirtilmemiş') + '</div>' +
-                    '</div>' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Fiyat</div>' +
-                    '<div class="detail-value">' + (car.price ? '₺' + car.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Belirtilmemiş') + '</div>' +
-                    '</div>' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Giriş Saati</div>' +
-                    '<div class="detail-value">' + timeStr + '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    actionsHtml +
+                    actionsHtml + // Durum değiştirme ve silme butonları her zaman görünür
+                    detailsDrawerHtml + // Çekmece içeriği
+                    toggleButtonHtml + // Çekmeceyi açma/kapatma düğmesi
                     '</div>';
             }).join('');
 
             container.innerHTML = carCards;
+            
+            // Eğer showActions true ise (çalışan/admin paneli), detayları varsayılan olarak açık bırak
+            // veya doğrudan .expanded sınıfını ekle
+            if (showActions) {
+                carsToRender.forEach(car => {
+                    const wrapper = document.getElementById(`car-details-wrapper-${car.id}`);
+                    if (wrapper) {
+                        wrapper.classList.add('expanded');
+                        const button = wrapper.nextElementSibling; // Düğme hemen wrapper'dan sonra gelir
+                        if (button && button.classList.contains('toggle-details-btn')) {
+                            const icon = button.querySelector('.toggle-icon');
+                            icon.className = 'fa-solid fa-chevron-up toggle-icon';
+                            button.innerHTML = '<i class="fa-solid fa-chevron-up toggle-icon"></i> Detayları Gizle';
+                        }
+                    }
+                });
+            }
         }
 
         // Araç listelerini render et (çalışan ve raporlar için)
@@ -1684,11 +1776,13 @@
             const employeeList = document.getElementById('employeeCarList');
             const dailyList = document.getElementById('dailyCarsList');
 
+            // Çalışan panelinde aksiyon butonları göster ve detayları açık bırak
             if (employeeList && document.getElementById('employeeScreen').classList.contains('active')) {
                 const activeCars = cars.filter(function(car) { return car.status !== 'completed'; });
-                renderCars(employeeList, activeCars, true); // Çalışan panelinde aksiyon butonları göster
+                renderCars(employeeList, activeCars, true); 
             }
 
+            // Rapor ekranında aksiyon butonları gösterme ve detayları açık bırak
             if (dailyList && document.getElementById('reportsScreen').classList.contains('active')) {
                 const today = new Date();
                 const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1696,8 +1790,10 @@
                     const carDate = car.createdAt && car.createdAt.toDate ? car.createdAt.toDate() : new Date(car.createdAt);
                     return carDate >= todayStart;
                 });
-                renderCars(dailyList, dailyCars, false); // Rapor ekranında aksiyon butonları gösterme
+                renderCars(dailyList, dailyCars, true); // Rapor ekranında da detaylar varsayılan açık olabilir
             }
+            // Müşteri ekranı için renderCars zaten searchCar fonksiyonu tarafından çağrılıyor ve showActions false olarak ayarlanıyor
+            // Bu da detayların varsayılan olarak gizli olmasını sağlar.
         }
 
         // Kullanıcı listesini render et
@@ -1719,15 +1815,17 @@
                     (user.role === 'admin' ? 'Admin' : 'Çalışan') +
                     '</div>' +
                     '</div>' +
-                    '<div class="car-details">' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">E-posta</div>' +
-                    '<div class="detail-value">' + user.email + '</div>' +
-                    '</div>' +
-                    '<div class="detail-item">' +
-                    '<div class="detail-label">Oluşturulma</div>' +
-                    '<div class="detail-value">' + createdDate + '</div>' +
-                    '</div>' +
+                    '<div class="car-details-wrapper expanded">' + /* Kullanıcı listesinde detaylar her zaman açık */
+                        '<div class="car-details">' +
+                            '<div class="detail-item">' +
+                            '<div class="detail-label">E-posta</div>' +
+                            '<div class="detail-value">' + user.email + '</div>' +
+                            '</div>' +
+                            '<div class="detail-item">' +
+                            '<div class="detail-label">Oluşturulma</div>' +
+                            '<div class="detail-value">' + createdDate + '</div>' +
+                            '</div>' +
+                        '</div>' +
                     '</div>' +
                     '</div>';
             }).join('');
