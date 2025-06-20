@@ -17,13 +17,14 @@
         /* Body stilleri */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Mor-mavi degrade arka plan */
+            background: linear-gradient(135deg, #FFDDC1 0%, #FFC48E 100%); /* Açık turuncu/şeftali degrade arka plan */
             min-height: 100vh; /* Tam ekran yüksekliği */
             color: #333; /* Varsayılan metin rengi */
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            overflow-x: hidden; /* Yatay kaydırmayı önle */
         }
 
         /* Ana konteyner stilleri */
@@ -39,7 +40,7 @@
 
         /* Başlık alanı stilleri */
         .header {
-            background: rgba(255, 255, 255, 0.15); /* Yarı şeffaf beyaz arka plan */
+            background: linear-gradient(45deg, #FFB300, #FF8F00); /* Açık turuncu degrade */
             backdrop-filter: blur(10px); /* Arka plan bulanıklığı */
             border-radius: 20px;
             padding: 20px;
@@ -85,9 +86,9 @@
 
         /* Birincil buton stilleri */
         .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2); /* Mor-mavi degrade */
+            background: linear-gradient(45deg, #FFB300, #FF8F00); /* Turuncu degrade */
             color: white;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 10px rgba(255, 179, 0, 0.4);
         }
 
         /* İkincil buton stilleri */
@@ -171,8 +172,8 @@
         /* Input, select, textarea focus stilleri */
         input:focus, select:focus, textarea:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+            border-color: #FF8F00; /* Turuncu odak rengi */
+            box-shadow: 0 0 0 4px rgba(255, 143, 0, 0.2); /* Turuncu gölge */
         }
 
         /* Arama kutusu konteyneri stilleri */
@@ -197,7 +198,7 @@
             top: 50%;
             transform: translateY(-50%);
             font-size: 24px;
-            color: #667eea;
+            color: #FF8F00; /* Turuncu ikon */
         }
 
         /* Araç kartı stilleri */
@@ -228,7 +229,7 @@
         .plate-number {
             font-size: 26px;
             font-weight: bold;
-            color: #4a5ee5;
+            color: #FF8F00; /* Turuncu plaka rengi */
         }
 
         /* Durum etiketi stilleri */
@@ -242,10 +243,10 @@
 
         /* Durum renkleri */
         .status.waiting { background: #ffd54f; color: #f57f17; } /* Sarı */
-        .status.washing { background: #64b5f6; color: #1976d2; } /* Açık mavi */
-        .status.drying { background: #a5d6a7; color: #2e7d32; } /* Açık yeşil */
+        .status.washing { background: #FFECB3; color: #F57C00; } /* Açık turuncu */
+        .status.drying { background: #FFD54F; color: #F57C00; } /* Sarı-turuncu */
         .status.ready { background: #ffab91; color: #bf360c; } /* Turuncu */
-        .status.completed { background: #b0bec5; color: #455a64; } /* Gri */
+        .status.completed { background: #D7CCC8; color: #6D4C41; } /* Sıcak gri */
 
         /* Araç detayları grid stilleri */
         .car-details {
@@ -303,7 +304,7 @@
         .welcome-text {
             font-size: 28px;
             margin-bottom: 30px;
-            color: #667eea;
+            color: #FF8F00; /* Turuncu metin */
             font-weight: bold;
         }
 
@@ -324,7 +325,7 @@
         }
 
         .section-header h3 {
-            color: #4a5ee5;
+            color: #FF8F00; /* Turuncu başlık */
             margin-bottom: 20px;
             font-size: 22px;
         }
@@ -356,9 +357,9 @@
         }
 
         .status-btn.active {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, #FFB300, #FF8F00); /* Turuncu aktif buton */
             color: white;
-            border-color: #667eea;
+            border-color: #FF8F00;
         }
 
         /* Bildirim kutusu stilleri */
@@ -381,7 +382,7 @@
 
         .notification.success { background: #4caf50; } /* Yeşil */
         .notification.error { background: #f44336; } /* Kırmızı */
-        .notification.info { background: #2196f3; } /* Mavi */
+        .notification.info { background: #FF8F00; } /* Turuncu Bilgi */
 
         /* Raporlar grid stilleri */
         .report-grid {
@@ -393,7 +394,7 @@
 
         /* Rapor kartı stilleri */
         .report-card {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFECB3 100%); /* Turuncu tonlarda degrade */
             border-radius: 15px;
             padding: 20px;
             text-align: center;
@@ -403,7 +404,7 @@
         .report-number {
             font-size: 36px;
             font-weight: bold;
-            color: #1976d2;
+            color: #F57C00; /* Turuncu numara */
         }
 
         /* Rapor etiketi stilleri */
@@ -523,7 +524,7 @@
             padding: 20px;
             margin-bottom: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid #4a5ee5; /* Sol kenarlık */
+            border-left: 4px solid #FF8F00; /* Sol kenarlık turuncu */
         }
 
         .feedback-header {
@@ -1025,7 +1026,7 @@
                         showNotification('Yeni araç eklendi: ' + newCar.plate, 'info');
                     }
                     
-                    renderCarLists(); // Araç listelerini yeniden render et
+                    renderCarLists(); // Tüm listeleri render et, başlangıçta kapalı olsunlar
                     
                     // Müşteri ekranındaysa aramayı tekrar yap
                     const plateSearchInput = document.getElementById('plateSearch');
@@ -1289,7 +1290,7 @@
                 screen.classList.remove('active');
             });
             document.getElementById(screenId).classList.add('active');
-        }
+        };
 
         // Bildirim gösterme fonksiyonu
         function showNotification(message, type) {
@@ -1302,7 +1303,7 @@
             setTimeout(function() {
                 notification.classList.remove('show');
             }, 3000);
-        }
+        };
 
         // Ekran navigasyon fonksiyonları (window nesnesine atanmış)
         window.showLogin = function() {
@@ -1379,7 +1380,8 @@
                 return;
             }
 
-            renderCars(resultsDiv, filteredCars, false); // Müşteri ekranında aksiyon butonları olmadan render et
+            // Müşteri ekranında detayları gizli olarak render et
+            renderCars(resultsDiv, filteredCars, false); 
             
             // Eğer tam eşleşme varsa geri bildirim formunu göster
             if (filteredCars.length === 1 && filteredCars[0].plate === searchTerm) {
@@ -1460,7 +1462,7 @@
                 star.classList.remove('active');
             });
             document.getElementById('ratingText').textContent = 'Puan seçin';
-        }
+        };
 
         // Araç yönetimi fonksiyonları
         window.addCar = async function() {
@@ -1642,7 +1644,7 @@
         };
 
         // Detay çekmecesini açıp kapatan fonksiyon
-        window.toggleCarDetails = function(event, carId, expandByDefault = false) {
+        window.toggleCarDetails = function(event, carId) {
             event.stopPropagation(); // Event'in parent elementlere yayılmasını engelle
             const wrapper = document.getElementById(`car-details-wrapper-${carId}`);
             const button = event.currentTarget;
@@ -1680,6 +1682,8 @@
                 const timeStr = createdAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
                 
                 let actionsHtml = '';
+                let toggleButtonHtml = '';
+
                 if (showActions) { // Çalışan ve Admin panellerinde durum değiştirme ve silme butonları
                     actionsHtml = '<div class="status-controls">' +
                         '<button class="status-btn ' + (car.status === 'waiting' ? 'active' : '') + '" onclick="updateCarStatus(\'' + car.id + '\', \'waiting\')">' +
@@ -1700,41 +1704,40 @@
                             '<i class="fa-solid fa-trash"></i> Sil</button></div>';
                     }
                 }
-
+                
                 // Çekmece içeriği için HTML
-                const detailsDrawerHtml = `
-                    <div id="car-details-wrapper-${car.id}" class="car-details-wrapper">
-                        <div class="car-details">
-                            <div class="detail-item">
-                                <div class="detail-label">Müşteri</div>
-                                <div class="detail-value">${car.customerName || 'Belirtilmemiş'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Telefon</div>
-                                <div class="detail-value">${car.customerPhone || 'Belirtilmemiş'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Hizmet</div>
-                                <div class="detail-value">${car.serviceType}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Süre</div>
-                                <div class="detail-value">${car.estimatedTime ? car.estimatedTime + ' dk' : 'Belirtilmemiş'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Fiyat</div>
-                                <div class="detail-value">${car.price ? '₺' + car.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Belirtilmemiş'}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Giriş Saati</div>
-                                <div class="detail-value">${timeStr}</div>
-                            </div>
+                const detailsContentHtml = `
+                    <div class="car-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Müşteri</div>
+                            <div class="detail-value">${car.customerName || 'Belirtilmemiş'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Telefon</div>
+                            <div class="detail-value">${car.customerPhone || 'Belirtilmemiş'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Hizmet</div>
+                            <div class="detail-value">${car.serviceType}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Süre</div>
+                            <div class="detail-value">${car.estimatedTime ? car.estimatedTime + ' dk' : 'Belirtilmemiş'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Fiyat</div>
+                            <div class="detail-value">${car.price ? '₺' + car.price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Belirtilmemiş'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Giriş Saati</div>
+                            <div class="detail-value">${timeStr}</div>
                         </div>
                     </div>
                 `;
 
-                // Çekmece düğmesi
-                const toggleButtonHtml = `
+                // Tüm ekranlarda detaylar çekmeceyle saklansın.
+                // Çekmece wrapper'ı ve toggle butonu her zaman eklenir.
+                toggleButtonHtml = `
                     <button class="btn btn-secondary toggle-details-btn" onclick="toggleCarDetails(event, '${car.id}')">
                         <i class="fa-solid fa-chevron-down toggle-icon"></i> Detayları Göster
                     </button>
@@ -1746,29 +1749,14 @@
                     '<div class="status ' + car.status + '">' + statusTexts[car.status] + '</div>' +
                     '</div>' +
                     actionsHtml + // Durum değiştirme ve silme butonları her zaman görünür
-                    detailsDrawerHtml + // Çekmece içeriği
+                    `<div id="car-details-wrapper-${car.id}" class="car-details-wrapper">` +
+                        detailsContentHtml +
+                    `</div>` +
                     toggleButtonHtml + // Çekmeceyi açma/kapatma düğmesi
                     '</div>';
             }).join('');
 
             container.innerHTML = carCards;
-            
-            // Eğer showActions true ise (çalışan/admin paneli), detayları varsayılan olarak açık bırak
-            // veya doğrudan .expanded sınıfını ekle
-            if (showActions) {
-                carsToRender.forEach(car => {
-                    const wrapper = document.getElementById(`car-details-wrapper-${car.id}`);
-                    if (wrapper) {
-                        wrapper.classList.add('expanded');
-                        const button = wrapper.nextElementSibling; // Düğme hemen wrapper'dan sonra gelir
-                        if (button && button.classList.contains('toggle-details-btn')) {
-                            const icon = button.querySelector('.toggle-icon');
-                            icon.className = 'fa-solid fa-chevron-up toggle-icon';
-                            button.innerHTML = '<i class="fa-solid fa-chevron-up toggle-icon"></i> Detayları Gizle';
-                        }
-                    }
-                });
-            }
         }
 
         // Araç listelerini render et (çalışan ve raporlar için)
@@ -1776,13 +1764,11 @@
             const employeeList = document.getElementById('employeeCarList');
             const dailyList = document.getElementById('dailyCarsList');
 
-            // Çalışan panelinde aksiyon butonları göster ve detayları açık bırak
             if (employeeList && document.getElementById('employeeScreen').classList.contains('active')) {
                 const activeCars = cars.filter(function(car) { return car.status !== 'completed'; });
-                renderCars(employeeList, activeCars, true); 
+                renderCars(employeeList, activeCars, true); // Çalışan panelinde aksiyon butonları göster
             }
 
-            // Rapor ekranında aksiyon butonları gösterme ve detayları açık bırak
             if (dailyList && document.getElementById('reportsScreen').classList.contains('active')) {
                 const today = new Date();
                 const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1790,7 +1776,7 @@
                     const carDate = car.createdAt && car.createdAt.toDate ? car.createdAt.toDate() : new Date(car.createdAt);
                     return carDate >= todayStart;
                 });
-                renderCars(dailyList, dailyCars, true); // Rapor ekranında da detaylar varsayılan açık olabilir
+                renderCars(dailyList, dailyCars, true); // Rapor ekranında da aksiyon butonu olabilir (silme vs.)
             }
             // Müşteri ekranı için renderCars zaten searchCar fonksiyonu tarafından çağrılıyor ve showActions false olarak ayarlanıyor
             // Bu da detayların varsayılan olarak gizli olmasını sağlar.
@@ -1815,7 +1801,8 @@
                     (user.role === 'admin' ? 'Admin' : 'Çalışan') +
                     '</div>' +
                     '</div>' +
-                    '<div class="car-details-wrapper expanded">' + /* Kullanıcı listesinde detaylar her zaman açık */
+                    /* Kullanıcı listesinde de detaylar çekmeceyle gizlensin */
+                    `<div id="car-details-wrapper-${user.id}" class="car-details-wrapper">` + 
                         '<div class="car-details">' +
                             '<div class="detail-item">' +
                             '<div class="detail-label">E-posta</div>' +
@@ -1827,6 +1814,9 @@
                             '</div>' +
                         '</div>' +
                     '</div>' +
+                    `<button class="btn btn-secondary toggle-details-btn" onclick="toggleCarDetails(event, '${user.id}')">
+                        <i class="fa-solid fa-chevron-down toggle-icon"></i> Detayları Göster
+                    </button>` +
                     '</div>';
             }).join('');
 
@@ -1891,7 +1881,7 @@
             const unreadBadge = unreadCount > 0 ? '• <span style="background: #ff6b6b; padding: 4px 8px; border-radius: 10px; margin-left: 8px;">' + unreadCount + ' Yeni</span>' : '';
 
             feedbackInbox.innerHTML = '<div style="margin-bottom: 20px; text-align: center;">' +
-                '<span style="background: #4a5ee5; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold;">' +
+                '<span style="background: #FF8F00; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold;">' +
                 '<i class="fa-solid fa-envelope"></i> ' + feedbacks.length + ' Toplam Geri Bildirim ' +
                 unreadBadge +
                 '</span>' +
@@ -1959,7 +1949,7 @@
         // Uygulamayı yükle
         initApp();
 
-        console.log("Auto Club Marintürk Oto Yıkama Takip Sistemi - Tek Sayfa Uygulaması Başlatıldı");
+        console.log("Oto Yıkama Takip Sistemi - Tek Sayfa Uygulaması Başlatıldı");
     </script>
 </body>
 </html>
